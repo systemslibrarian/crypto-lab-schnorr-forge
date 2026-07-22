@@ -179,6 +179,7 @@
       <nav class="tabs" aria-label="Exhibits">
         <div class="tab-list" role="tablist" aria-label="Schnorr Forge exhibits">
           <button class="tab-btn" role="tab" id="tab-sign" aria-selected="true" aria-controls="panel-sign" data-panel="sign">Sign &amp; Verify</button>
+          <button class="tab-btn" role="tab" id="tab-verify" aria-selected="false" aria-controls="panel-verify" data-panel="verify" tabindex="-1">Verify Workbench</button>
           <button class="tab-btn" role="tab" id="tab-equation" aria-selected="false" aria-controls="panel-equation" data-panel="equation" tabindex="-1">The Equation</button>
           <button class="tab-btn" role="tab" id="tab-attack" aria-selected="false" aria-controls="panel-attack" data-panel="attack" tabindex="-1">Nonce Reuse → Key Recovery</button>
           <button class="tab-btn" role="tab" id="tab-vectors" aria-selected="false" aria-controls="panel-vectors" data-panel="vectors" tabindex="-1">BIP-340 Test Vectors</button>
@@ -188,6 +189,7 @@
 
       <main>
         <section id="panel-sign" class="panel" role="tabpanel" aria-labelledby="tab-sign" tabindex="0"></section>
+        <section id="panel-verify" class="panel" role="tabpanel" aria-labelledby="tab-verify" tabindex="0" hidden></section>
         <section id="panel-equation" class="panel" role="tabpanel" aria-labelledby="tab-equation" tabindex="0" hidden></section>
         <section id="panel-attack" class="panel" role="tabpanel" aria-labelledby="tab-attack" tabindex="0" hidden></section>
         <section id="panel-vectors" class="panel" role="tabpanel" aria-labelledby="tab-vectors" tabindex="0" hidden></section>

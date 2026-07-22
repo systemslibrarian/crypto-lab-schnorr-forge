@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, learnerCheck } from './dom.js';
 import { aggregateTwo } from '../schnorr/aggregate.js';
 import { bytesToBig, randomBytes, N, utf8 } from '../schnorr/field.js';
 
@@ -74,6 +74,14 @@ export function renderLinearityPanel(root: HTMLElement): void {
       ' (two-round nonces, key-aggregation coefficients) and ',
       h('a', { href: 'https://systemslibrarian.github.io/crypto-lab-frost-threshold/', target: '_blank', rel: 'noopener noreferrer' }, 'FROST'),
       ' add. The linearity shown here is real; the security engineering is what those protocols contribute.',
+    ),
+    learnerCheck(
+      'Since two honest signers combine cleanly here, is this naive add-the-keys aggregation safe to deploy?',
+      [
+        { label: 'Yes, it just works', correct: false },
+        { label: 'No — a malicious signer can break it', correct: true },
+      ],
+      'A participant who chooses their key or nonce after seeing the others (a rogue-key or Wagner attack) can forge for the group. MuSig2 and FROST add key-aggregation coefficients and a two-round nonce commitment to close exactly these holes.',
     ),
   );
 

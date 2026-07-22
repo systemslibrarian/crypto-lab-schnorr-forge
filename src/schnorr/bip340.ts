@@ -157,6 +157,13 @@ export function sign(msg: Uint8Array, sk: Uint8Array, mode: NonceMode): SignResu
   return signWithNonce(msg, d0, k0, auxRand);
 }
 
+/** One stage of the verification pipeline (for the Verify Workbench display). */
+export interface VerifyStage {
+  label: string;
+  status: 'pass' | 'fail' | 'skipped';
+  detail: string;
+}
+
 export interface VerifyResult {
   valid: boolean;
   reason: string; // human-readable outcome (pass or the exact fail-closed cause)
@@ -164,6 +171,7 @@ export interface VerifyResult {
   // "Compute both sides and compare" — the two points of  s·G  vs  R + e·P.
   lhs: string | null; // s·G, x-only hex (or "∞")
   rhs: string | null; // R + e·P, x-only hex (or "∞")
+  stages: VerifyStage[]; // ordered pipeline, stopping at the first failure
 }
 
 function pointX(pt: Pt): string {
@@ -171,48 +179,62 @@ function pointX(pt: Pt): string {
 }
 
 /**
- * Hand-rolled BIP-340 verification, structured as compute-both-sides:
- * lift R from its x, recompute e, and check  s·G  ==  R + e·P.
- * Every rejection returns the exact fail-closed reason (used by the KAT panel).
+ * Hand-rolled BIP-340 verification as an explicit five-stage pipeline:
+ * parse & lengths → range checks → lift points → recompute challenge →
+ * compare s·G against R + e·P. Every rejection names the exact stage and cause,
+ * and the ordered `stages` drive the Verify Workbench display and the KAT panel.
  */
 export function verify(sig: Uint8Array, msg: Uint8Array, pubkey: Uint8Array): VerifyResult {
-  const fail = (reason: string, e: bigint | null = null): VerifyResult => ({
-    valid: false,
-    reason,
-    e,
-    lhs: null,
-    rhs: null,
-  });
+  const stages: VerifyStage[] = [];
+  const fail = (label: string, detail: string, e: bigint | null = null): VerifyResult => {
+    stages.push({ label, status: 'fail', detail });
+    return { valid: false, reason: detail, e, lhs: null, rhs: null, stages };
+  };
+  const pass = (label: string, detail: string): void => {
+    stages.push({ label, status: 'pass', detail });
+  };
 
-  if (sig.length !== 64) return fail(`signature must be 64 bytes (got ${sig.length})`);
-  if (pubkey.length !== 32) return fail(`public key must be 32 bytes (got ${pubkey.length})`);
+  // 1. Parse & lengths
+  if (sig.length !== 64) return fail('Parse & lengths', `signature must be 64 bytes (got ${sig.length})`);
+  if (pubkey.length !== 32) return fail('Parse & lengths', `public key must be 32 bytes (got ${pubkey.length})`);
+  pass('Parse & lengths', 'signature is 64 bytes (R.x ‖ s); public key is 32 bytes');
 
+  // 2. Range checks
   const px = bytesToBig(pubkey);
-  if (px >= FIELD_P) return fail('public key x ≥ field size p — not a coordinate');
-  const Ppt = liftX(px);
-  if (!Ppt) return fail('public key is not a valid x-coordinate on the curve');
-
   const r = bytesToBig(sig.subarray(0, 32));
   const s = bytesToBig(sig.subarray(32, 64));
-  if (r >= FIELD_P) return fail('signature R.x ≥ field size p');
-  if (s >= N) return fail('signature s ≥ group order n');
+  if (px >= FIELD_P) return fail('Range checks', 'public key x ≥ field size p — not a coordinate');
+  if (r >= FIELD_P) return fail('Range checks', 'signature R.x ≥ field size p');
+  if (s >= N) return fail('Range checks', 'signature s ≥ group order n');
+  pass('Range checks', 'P.x < p, R.x < p, and s < n');
 
+  // 3. Lift points to their even-y representatives
+  const Ppt = liftX(px);
+  if (!Ppt) return fail('Lift points', 'public key is not a valid x-coordinate on the curve');
   const Rpt = liftX(r);
-  if (!Rpt) return fail('signature R.x is not a point on the curve');
+  if (!Rpt) return fail('Lift points', 'signature R.x is not a point on the curve');
+  pass('Lift points', 'lifted P and R to even-y curve points');
 
+  // 4. Recompute the challenge
   const e = challenge(sig.subarray(0, 32), pubkey, msg);
+  pass('Challenge', `e = tagged-hash(R.x ‖ P.x ‖ m) mod n = 0x${e.toString(16)}`);
+
+  // 5. Group equation: s·G vs R + e·P
   const lhs = mul(G, s); // s·G
   const rhs = Rpt.add(mul(Ppt, e)); // R + e·P
+  const valid = lhs.equals(rhs);
+  stages.push({
+    label: 'Group equation',
+    status: valid ? 'pass' : 'fail',
+    detail: valid ? 's·G equals R + e·P' : 's·G ≠ R + e·P',
+  });
 
-  const result: VerifyResult = {
-    valid: lhs.equals(rhs),
-    reason: '',
+  return {
+    valid,
+    reason: valid ? 's·G equals R + e·P — signature valid' : 's·G ≠ R + e·P — signature rejected',
     e,
     lhs: pointX(lhs),
     rhs: pointX(rhs),
+    stages,
   };
-  result.reason = result.valid
-    ? 's·G equals R + e·P — signature valid'
-    : 's·G ≠ R + e·P — signature rejected';
-  return result;
 }

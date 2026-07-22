@@ -28,10 +28,14 @@ jobs:
         run: npm test
       - name: Build (typecheck gates the build)
         run: npm run build
+      - name: Compressed-size budget
+        run: npm run size-budget
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Accessibility gate (axe-core, WCAG A/AA, both themes)
         run: npm run test:a11y
+      - name: Functional flows (Chromium + mobile viewport)
+        run: npm run test:e2e
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

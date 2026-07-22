@@ -76,3 +76,70 @@ export function short(hex: string, keep = 10): string {
   if (hex.length <= keep * 2 + 1) return hex;
   return `${hex.slice(0, keep)}…${hex.slice(-keep)}`;
 }
+
+/**
+ * A copy-to-clipboard button. `secret: true` marks it as copying key material
+ * (styled distinctly, warned in its label) so public and private values are
+ * never treated as interchangeable.
+ */
+export function copyButton(getText: () => string, opts: { label?: string; secret?: boolean } = {}): HTMLButtonElement {
+  const base = opts.secret ? 'Copy secret' : 'Copy';
+  const btn = h(
+    'button',
+    {
+      type: 'button',
+      class: `btn btn-ghost copy-btn${opts.secret ? ' copy-secret' : ''}`,
+      'aria-label': opts.label ?? base,
+    },
+    base,
+  ) as HTMLButtonElement;
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      btn.textContent = 'Copied';
+    } catch {
+      btn.textContent = 'Copy failed';
+    }
+    setTimeout(() => (btn.textContent = base), 1200);
+  });
+  return btn;
+}
+
+/**
+ * A lightweight "predict before you reveal" check: one misconception, a couple of
+ * choices, and an immediate explanation. No score, account, or gamification; the
+ * lab stays fully usable whether or not it is answered.
+ */
+export function learnerCheck(
+  question: string,
+  options: { label: string; correct: boolean }[],
+  explanation: string,
+): HTMLElement {
+  const feedback = h('div', { class: 'check-feedback', role: 'status', 'aria-live': 'polite' });
+  const buttons = options.map((o) =>
+    h('button', {
+      type: 'button',
+      class: 'btn btn-ghost check-opt',
+      onclick: () => {
+        clear(feedback);
+        feedback.append(
+          h('span', { class: `pill pill-${o.correct ? 'ok' : 'bad'}` },
+            h('span', { 'aria-hidden': 'true' }, o.correct ? '✓ ' : '✕ '),
+            o.correct ? 'Correct' : 'Not quite',
+          ),
+          h('p', { class: 'check-explain' }, explanation),
+        );
+      },
+    }, o.label),
+  );
+  return h(
+    'details',
+    { class: 'learner-check' },
+    h('summary', {}, 'Quick check'),
+    h('div', { class: 'check-body' },
+      h('p', { class: 'check-q' }, question),
+      h('div', { class: 'input-row', role: 'group', 'aria-label': question }, ...buttons),
+      feedback,
+    ),
+  );
+}

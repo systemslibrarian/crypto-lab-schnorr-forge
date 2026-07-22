@@ -1,27 +1,36 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * E2E accessibility gate. Tests run against the production build served by
- * `vite preview`, so what passes here is what actually ships to Pages.
- * Run `npm run build` first (CI does).
+ * E2E runs against the production build served by `vite preview`, so what passes
+ * here is what ships. Two kinds of tests:
+ *   - a11y.spec.ts  — the axe WCAG gate, Chromium only (deterministic gate).
+ *   - flows.spec.ts — role-based functional scenarios across Chromium, Firefox,
+ *     WebKit, and a mobile viewport.
  *
- * Port 4357 is unique to this lab across the fleet (never the Vite default 4173:
- * with 100+ labs checked out side by side a shared port would silently scan a
- * different lab's preview via reuseExistingServer).
+ * Port 4357 is unique to this lab across the fleet (never the Vite default 4173).
  */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  timeout: 90_000, // the axe driver walks every panel + disclosure before scanning
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'list' : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4357/crypto-lab-schnorr-forge/',
-    // Dark is the default theme; pin the emulated scheme to dark so the default
-    // scan is dark and the toggle deterministically moves to light.
-    colorScheme: 'dark',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'a11y',
+      testMatch: /a11y\.spec\.ts/,
+      // Scan the real dark default; the toggle deterministically reaches light.
+      use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
+    },
+    { name: 'flows-chromium', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'flows-firefox', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
+    { name: 'flows-webkit', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
+    { name: 'flows-mobile', testMatch: /flows\.spec\.ts/, use: { ...devices['Pixel 5'] } },
+  ],
   webServer: {
     command: 'npm run preview -- --port 4357 --strictPort',
     url: 'http://localhost:4357/crypto-lab-schnorr-forge/',

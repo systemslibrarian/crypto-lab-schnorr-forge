@@ -1,14 +1,17 @@
 import './style.css';
 import { renderSignPanel } from './ui/signPanel.js';
+import { renderVerifyWorkbench } from './ui/verifyWorkbench.js';
+import { setVerifyOpener, loadVerifyCase, type LoadVerifyDetail } from './ui/workbenchBridge.js';
 import { renderEquationPanel } from './ui/equationPanel.js';
 import { renderAttackPanel } from './ui/attackPanel.js';
 import { renderVectorsPanel } from './ui/vectorsPanel.js';
 import { renderLinearityPanel } from './ui/linearityPanel.js';
 
-type PanelKey = 'sign' | 'equation' | 'attack' | 'vectors' | 'linearity';
+type PanelKey = 'sign' | 'verify' | 'equation' | 'attack' | 'vectors' | 'linearity';
 
 const renderers: Record<PanelKey, (root: HTMLElement) => void> = {
   sign: renderSignPanel,
+  verify: renderVerifyWorkbench,
   equation: renderEquationPanel,
   attack: renderAttackPanel,
   vectors: renderVectorsPanel,
@@ -60,5 +63,30 @@ function wireTabs(): void {
   });
 }
 
+// A "Load in Verify Workbench" action (from the vectors table) renders the
+// workbench if needed, switches to it, then loads the public case.
+setVerifyOpener((detail?: LoadVerifyDetail) => {
+  ensureRendered('verify');
+  selectTab('verify');
+  if (detail) loadVerifyCase(detail);
+});
+
 wireTabs();
-selectTab('sign');
+
+// Permalink: #verify?pk=..&sig=..&msg=.. opens the workbench pre-loaded with a
+// PUBLIC verification case. Only public artifacts are ever read from the URL.
+function openFromHash(): boolean {
+  const hash = location.hash.replace(/^#/, '');
+  if (!hash.startsWith('verify')) return false;
+  const q = new URLSearchParams(hash.slice(hash.indexOf('?') + 1));
+  const pk = q.get('pk');
+  const sig = q.get('sig');
+  const msg = q.get('msg') ?? '';
+  ensureRendered('verify');
+  selectTab('verify');
+  if (pk && sig) loadVerifyCase({ pubkeyHex: pk, sigHex: sig, msgHex: msg });
+  return true;
+}
+
+if (!openFromHash()) selectTab('sign');
+window.addEventListener('hashchange', openFromHash);

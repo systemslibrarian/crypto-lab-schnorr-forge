@@ -315,10 +315,71 @@ body {
 .scripture-footer p { margin: 0.4rem 0; }
 .footer-links a { color: var(--accent-text); }
 
+/* ---------- segmented encoding toggle (message input) ---------- */
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: fit-content; }
+.seg-btn { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 0.35rem 0.7rem; background: var(--surface); color: var(--text-dim); border: none; cursor: pointer; }
+.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+.seg-btn.active, .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.msg-status { margin: 0.2rem 0 0; }
+
+/* ---------- verify workbench: staged pipeline ---------- */
+.stage-list { list-style: none; margin: 0.3rem 0 0.8rem; padding: 0; display: grid; gap: 0.35rem; }
+.stage { display: grid; grid-template-columns: 1.2rem auto 1fr; gap: 0.5rem; align-items: baseline; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); font-size: 0.86rem; }
+.stage-icon { font-weight: 700; }
+.stage-label { font-weight: 600; }
+.stage-detail { color: var(--text-dim); overflow-wrap: anywhere; }
+.stage-pass { border-left: 3px solid var(--ok); }
+.stage-pass .stage-icon { color: var(--ok-text); }
+.stage-fail { border-left: 3px solid var(--bad); }
+.stage-fail .stage-icon { color: var(--bad-text); }
+.stage-skipped { border-left: 3px solid var(--border); opacity: 0.8; }
+
+.presets { margin: 1rem 0; display: grid; gap: 0.5rem; }
+.preset-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.preset-btn { font-size: 0.8rem; }
+.preset-accept { border-color: color-mix(in oklab, var(--ok) 45%, var(--border)); }
+.preset-reject { border-color: color-mix(in oklab, var(--bad) 40%, var(--border)); }
+
+/* ---------- copy / actions ---------- */
+.value-with-copy { display: flex; gap: 0.5rem; align-items: flex-start; }
+.value-with-copy .field-value { flex: 1 1 auto; }
+.action-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.copy-btn { font-size: 0.8rem; white-space: nowrap; }
+.copy-secret { border-color: color-mix(in oklab, var(--bad) 40%, var(--border)); color: var(--bad-text); }
+
+/* ---------- disclosures: BIP-340 details + learner checks + KAT items ---------- */
+#app summary { cursor: pointer; font-weight: 600; }
+#app summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.bip-details, .learner-check { border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; background: var(--surface); margin: 0.4rem 0; }
+.bip-body { display: grid; gap: 0.5rem; margin-top: 0.6rem; }
+.bip-body p { margin: 0; color: var(--text-dim); font-size: 0.9rem; }
+.learner-check { background: color-mix(in oklab, var(--accent) 5%, var(--surface)); }
+.check-body { margin-top: 0.6rem; display: grid; gap: 0.55rem; }
+.check-q { margin: 0; font-size: 0.92rem; }
+.check-opt { font-size: 0.85rem; }
+.check-feedback { display: grid; gap: 0.35rem; }
+.check-explain { margin: 0; font-size: 0.88rem; color: var(--text-dim); }
+
+.kat-list { display: grid; gap: 0.4rem; margin: 0.5rem 0; }
+.kat-item { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 0 0.2rem; }
+.kat-item[open] { padding-bottom: 0.6rem; }
+.kat-item summary { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.55rem 0.6rem; list-style-position: inside; }
+.kat-idx { font-family: var(--mono); font-weight: 700; font-size: 0.85rem; }
+.kat-case { color: var(--text-dim); font-weight: 400; font-size: 0.86rem; flex: 1 1 auto; }
+.kat-item.kat-ok { border-left: 3px solid var(--ok); }
+.kat-item.kat-bad { border-left: 3px solid var(--bad); }
+.kat-body { display: grid; gap: 0.45rem; padding: 0.3rem 0.7rem 0.2rem; }
+
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   .panel, .reveal { animation: none; }
   * { transition: none !important; }
+}
+
+/* Touch targets: primary and icon controls get a ≥44px hit area on coarse
+   pointers (phones/tablets), where precise tapping is harder. */
+@media (pointer: coarse) {
+  #app .btn, #app .tab-btn, #app .seg-btn, #app .check-opt { min-height: 44px; }
 }

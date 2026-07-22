@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, learnerCheck } from './dom.js';
 import { signReusedNonce, recoverPrivateKey } from '../schnorr/attack.js';
 import { verify } from '../schnorr/bip340.js';
 import {
@@ -113,6 +113,15 @@ export function renderAttackPanel(root: HTMLElement): void {
           run();
         } }, 'New victim key & nonce'),
       ),
+    ),
+    learnerCheck(
+      'Two signatures reuse one nonce k, so s₁ = k + e₁·x and s₂ = k + e₂·x. When you subtract them, which term cancels?',
+      [
+        { label: 'The nonce k', correct: true },
+        { label: 'The private key x', correct: false },
+        { label: 'Nothing cancels', correct: false },
+      ],
+      's₁ − s₂ = (k + e₁·x) − (k + e₂·x) = (e₁ − e₂)·x. The shared k cancels, leaving one linear equation in x — divide by (e₁ − e₂) and the key is out.',
     ),
     output,
   );

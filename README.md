@@ -25,11 +25,14 @@ That last clause is the whole drama of this lab. Schnorr's linearity is exactly 
 
 ## Exhibits
 
-1. **Sign & Verify** — Pick or randomize a key, type a message, choose deterministic or randomized (hedged) nonce derivation, and sign. See the three moves (commit `R`, challenge `e`, respond `s`), the 64-byte signature, and a **compute-both-sides** verification that shows `s·G` and `R + e·P` byte-for-byte. A "Break it" button re-verifies the same signature against an edited message and watches the real verifier reject it.
-2. **The Equation** — A user-driven, step-at-a-time walk through commit → challenge → respond → verify, ending in the algebra `s·G = (k + e·x)·G = R + e·P`. Motion is tied to your clicks; nothing loops on its own.
-3. **Nonce Reuse → Key Recovery** — The break-it centerpiece. A deliberately faulty signer reuses one nonce across two messages; the panel then runs the actual recovery `x = (s₁ − s₂)·(e₁ − e₂)⁻¹ mod n` and shows the recovered key **equals** the real secret. Isolated and clearly marked broken — never the default path.
-4. **BIP-340 Test Vectors** — All 19 official vectors run through the same hand-rolled `verify()`, including the malformed cases that must be **rejected** (point off the curve, out-of-range scalars, negated values). Green means our verdict matched the spec.
-5. **Why Linearity Matters** — Two independent signers produce responses `s₁`, `s₂` that literally add into one combined signature the ordinary verifier accepts against the summed key — the seed of Schnorr multisig, pointing to MuSig2 and FROST.
+1. **Sign & Verify** — Pick or randomize a key, supply a message as **UTF-8 text or exact hex bytes**, choose deterministic or randomized (hedged) nonce derivation, and sign. See the three moves (commit `R`, challenge `e`, respond `s`), the 64-byte signature, and a **compute-both-sides** verification that shows `s·G` and `R + e·P` byte-for-byte. A "Break it" button flips one message byte and watches the real verifier reject it, an optional **BIP-340 details** disclosure exposes the even-y/parity normalization on real intermediates, and copy/export/shareable-verify-link actions handle only public artifacts (private key copy is separately marked).
+2. **Verify Workbench** — Paste an x-only public key, signature, and message (UTF-8 or hex) from **any** BIP-340 implementation — no private key needed — and watch the explicit five-stage pipeline decide: parse & lengths → range checks → lift points → recompute challenge → compare `s·G` against `R + e·P`. Curated presets cover a valid signature and the malformed rejections (off-curve key, out-of-range scalar, changed message, wrong length).
+3. **The Equation** — A user-driven, step-at-a-time walk through commit → challenge → respond → verify, ending in the algebra `s·G = (k + e·x)·G = R + e·P`. Motion is tied to your clicks; nothing loops on its own.
+4. **Nonce Reuse → Key Recovery** — The break-it centerpiece. A deliberately faulty signer reuses one nonce across two messages; the panel then runs the actual recovery `x = (s₁ − s₂)·(e₁ − e₂)⁻¹ mod n` and shows the recovered key **equals** the real secret. Isolated and clearly marked broken — never the default path.
+5. **BIP-340 Test Vectors** — All 19 official vectors run through the same hand-rolled `verify()`, including the malformed cases that must be **rejected** (point off the curve, out-of-range scalars, negated values). Each row expands to its full artifacts and the exact failing stage, and can be sent to the Verify Workbench. Green means our verdict matched the spec.
+6. **Why Linearity Matters** — Two independent signers produce responses `s₁`, `s₂` that literally add into one combined signature the ordinary verifier accepts against the summed key — the seed of Schnorr multisig, pointing to MuSig2 and FROST.
+
+Several exhibits end with an optional **quick check** — a one-question prediction with an immediate explanation — targeting a common misconception. The lab stays fully usable whether or not you answer them.
 
 ## When to Use It
 
@@ -70,10 +73,13 @@ Bottom line: great for learning exactly what BIP-340 signs and why a signature p
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173/crypto-lab-schnorr-forge/
-npm run build      # typecheck + production build to dist/
-npm test           # unit tests incl. BIP-340 KATs
-npm run test:a11y  # WCAG 2.1 AA gate (build first)
+npm run dev          # http://localhost:5173/crypto-lab-schnorr-forge/
+npm run build        # typecheck + production build to dist/
+npm test             # unit tests incl. BIP-340 KATs
+npm run size-budget  # compressed-bundle budget (build first)
+npm run test:a11y    # WCAG 2.1 AA axe gate, both themes (build first)
+npm run test:e2e     # functional flows on Chromium + a mobile viewport
+npm run test:e2e:all # full matrix: Chromium, Firefox, WebKit, mobile
 ```
 
 ## Related Demos
@@ -86,14 +92,17 @@ npm run test:a11y  # WCAG 2.1 AA gate (build first)
 
 ## Build & Verify
 
-- **43 unit tests** (Vitest, colocated `src/**/*.test.ts`), run in CI on every push.
-- **28 BIP-340 spec KATs** — [`src/schnorr/vectors.ts`](src/schnorr/vectors.ts) holds all 19 official test vectors; [`src/schnorr/vectors.test.ts`](src/schnorr/vectors.test.ts) checks verification against every row **and** reproduces the exact expected signature for the 8 signing vectors. Our signatures are additionally cross-checked byte-for-byte against `@noble/curves` schnorr ([`src/schnorr/bip340.test.ts`](src/schnorr/bip340.test.ts)).
+- **69 unit tests** (Vitest, colocated `src/**/*.test.ts`), run in CI on every push and before every merge.
+- **28 BIP-340 spec KAT assertions** — [`src/schnorr/vectors.ts`](src/schnorr/vectors.ts) holds all 19 official test vectors; [`src/schnorr/vectors.test.ts`](src/schnorr/vectors.test.ts) checks verification against every row **and** reproduces the exact expected signature for the 8 signing vectors. Our signatures are additionally cross-checked byte-for-byte against `@noble/curves` schnorr in a **differential sweep across 40 keys/messages/aux/lengths** ([`src/schnorr/bip340.test.ts`](src/schnorr/bip340.test.ts)), and every verifier rejection branch and pipeline stage is named in a test.
+- **Strict parsing & boundaries** — [`src/schnorr/field.test.ts`](src/schnorr/field.test.ts) proves malformed hex fails closed (no partial parse) and exercises scalar/coordinate boundaries (`0`, `1`, `n-1`, `p`).
 - **Attack correctness** — [`src/schnorr/attack.test.ts`](src/schnorr/attack.test.ts) proves nonce-reuse recovery returns the exact private key across many keys, and fails closed when nonces differ or messages coincide.
-- **Accessibility gate** — `@axe-core/playwright` scans the production build for **zero** WCAG 2.1 A/AA violations in **both** themes ([`e2e/a11y.spec.ts`](e2e/a11y.spec.ts)); the GitHub Pages deploy is blocked if it fails.
+- **Accessibility gate** — `@axe-core/playwright` scans the production build for **zero** WCAG 2.1 A/AA violations in **both** themes ([`e2e/a11y.spec.ts`](e2e/a11y.spec.ts)).
+- **Functional flows** — role-based end-to-end scenarios ([`e2e/flows.spec.ts`](e2e/flows.spec.ts)) run on **Chromium, Firefox, WebKit, and a mobile viewport**: sign/verify, tamper-rejects, workbench presets, vector hand-off, aggregation, keyboard tab roving, skip navigation, no-overflow geometry, and 44px touch targets.
+- **Gated CI** — a pull-request workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs typecheck, unit tests, build, the size budget, the a11y gate, and the cross-browser flows **before merge**, with no Pages write permissions; [`deploy.yml`](.github/workflows/deploy.yml) re-runs the gates and ships to Pages only from `main`.
 
 ## Performance
 
-All arithmetic runs in the browser in a few milliseconds per operation. There is no backend and no network I/O after the initial static load.
+All arithmetic runs in the browser in a few milliseconds per operation. There is no backend and no network I/O after the initial static load. A CI **compressed-size budget** ([`scripts/size-budget.mjs`](scripts/size-budget.mjs)) holds the bundle to ≤ 35 kB gzip JS and ≤ 10 kB gzip CSS (currently ~27 kB / ~3 kB).
 
 ---
 

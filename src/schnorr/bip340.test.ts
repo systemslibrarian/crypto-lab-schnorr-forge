@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { schnorr } from '@noble/curves/secp256k1.js';
 import { sign, signWithNonce, verify, deriveNonce, taggedHash, challenge } from './bip340.js';
+import { BIP340_VECTORS } from './vectors.js';
 import { N, G, mod, bytesToBig, bigTo32, xOnly, hasEvenY, utf8, hexToBytes, bytesToHex } from './field.js';
 
 describe('BIP-340 hand-rolled internals', () => {
@@ -106,6 +107,44 @@ describe('BIP-340 hand-rolled internals', () => {
     const k = deriveNonce(3n, px, msg, new Uint8Array(32));
     expect(k).toBeGreaterThan(0n);
     expect(k).toBeLessThan(N);
+  });
+
+  it('verify reports an explicit staged pipeline that stops at the first failure', () => {
+    const sk = bigTo32(7n);
+    const msg = utf8('stages');
+    const { signature, trace } = sign(msg, sk, 'deterministic');
+
+    const good = verify(signature, msg, trace.pubkey);
+    expect(good.stages.map((s) => s.label)).toEqual([
+      'Parse & lengths',
+      'Range checks',
+      'Lift points',
+      'Challenge',
+      'Group equation',
+    ]);
+    expect(good.stages.every((s) => s.status === 'pass')).toBe(true);
+
+    // Wrong length fails at the first stage and goes no further.
+    const shortSig = verify(signature.subarray(0, 63), msg, trace.pubkey);
+    expect(shortSig.stages).toHaveLength(1);
+    expect(shortSig.stages[0]).toMatchObject({ label: 'Parse & lengths', status: 'fail' });
+
+    // A tampered message reaches the final stage, then fails there.
+    const tampered = verify(signature, utf8('other'), trace.pubkey);
+    expect(tampered.stages.at(-1)).toMatchObject({ label: 'Group equation', status: 'fail' });
+  });
+
+  it('malformed KAT vectors fail at the expected pipeline stage', () => {
+    const stageOf = (i: number) => {
+      const v = BIP340_VECTORS[i];
+      const r = verify(hexToBytes(v.signature), hexToBytes(v.message), hexToBytes(v.publicKey));
+      return r.stages.at(-1);
+    };
+    expect(stageOf(5)).toMatchObject({ label: 'Lift points', status: 'fail' }); // pubkey off curve
+    expect(stageOf(11)).toMatchObject({ label: 'Lift points', status: 'fail' }); // R.x not on curve
+    expect(stageOf(12)).toMatchObject({ label: 'Range checks', status: 'fail' }); // R.x = p
+    expect(stageOf(13)).toMatchObject({ label: 'Range checks', status: 'fail' }); // s = n
+    expect(stageOf(14)).toMatchObject({ label: 'Range checks', status: 'fail' }); // pubkey > p
   });
 
   it('signWithNonce applies even-y adjustment to k and d', () => {

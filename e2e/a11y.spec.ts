@@ -19,22 +19,29 @@ async function driveDemos(page: Page): Promise<void> {
     const panelId = await tabs.nth(i).getAttribute('aria-controls');
     const panel = page.locator(`#${panelId}`);
 
-    // Fire the primary actions in this panel (sign, attack, combine, tamper…).
+    // Fire the primary actions in this panel (sign, verify, attack, combine…).
+    // Every exploratory click is time-bounded so a non-actionable target can
+    // never hang the scan.
     const buttons = panel.locator('button');
     const n = await buttons.count();
     for (let b = 0; b < n; b++) {
       const label = ((await buttons.nth(b).textContent()) || '').toLowerCase();
-      if (/(sign|attack|combine|break it|next|randomize|new )/.test(label)) {
-        await buttons.nth(b).click().catch(() => {});
-        await page.waitForTimeout(60);
+      if (/(sign|verify|attack|combine|break it|next|randomize|new )/.test(label)) {
+        await buttons.nth(b).click({ timeout: 2000 }).catch(() => {});
       }
     }
   }
-  // Reveal every panel so all of them are scanned in one pass.
+  // Reveal every panel and open every disclosure so all states are in the DOM.
   await page.evaluate(() => {
     document.querySelectorAll('details').forEach((d) => ((d as HTMLDetailsElement).open = true));
     document.querySelectorAll<HTMLElement>('[hidden]').forEach((el) => el.removeAttribute('hidden'));
   });
+  // Now that everything is visible, drive rejection + learner-check states too.
+  for (const sel of ['.preset-reject', '.check-opt']) {
+    for (const el of await page.locator(sel).all()) {
+      await el.click({ timeout: 1500, force: true }).catch(() => {});
+    }
+  }
   await page.addStyleTag({
     content: `*,*::before,*::after{animation:none!important;transition:none!important}`,
   });

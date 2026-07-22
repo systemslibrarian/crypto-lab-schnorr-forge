@@ -1,0 +1,36 @@
+name: CI
+
+# Pre-merge validation: typecheck, unit tests (incl. spec KATs), build, the
+# size budget, the a11y gate, and the cross-browser functional flows. Runs on
+# pull requests so a failing cryptographic or browser test blocks merge BEFORE
+# it reaches main. This job never receives Pages write permissions — deployment
+# lives only in deploy.yml.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (Vitest, incl. spec KATs)
+        run: npm test
+      - name: Build (typecheck gates the build)
+        run: npm run build
+      - name: Compressed-size budget
+        run: npm run size-budget
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: A11y gate + cross-browser flows (Chromium, Firefox, WebKit, mobile)
+        run: npm run test:e2e:all
