@@ -174,11 +174,11 @@ export function renderSignPanel(root: HTMLElement): void {
       h('div', { class: 'control' },
         h('span', { class: 'control-label', id: 'nonce-mode-label' }, 'Nonce derivation'),
         h('div', { class: 'radio-row', role: 'group', 'aria-labelledby': 'nonce-mode-label' }, ...modeRadios),
-        h('p', { class: 'help' }, 'Both are safe. Deterministic gives the same R every time; random hedges with fresh entropy. Neither reuses a nonce across messages — that flaw lives in the attack tab.'),
+        h('p', { class: 'help' }, 'Both are safe. Deterministic gives the same R every time; random hedges with fresh entropy. Because the nonce binds the message, reuse across different messages is cryptographically negligible — the deliberate-reuse flaw lives in the attack tab.'),
       ),
       h('button', { type: 'button', class: 'btn btn-primary', onclick: doSign }, 'Sign message'),
     ),
-    note('info', h('strong', {}, 'Not production crypto — a teaching demo. '), 'Keys live only in this tab in memory and are never stored or sent anywhere. For real signing use the audited ', h('code', {}, '@noble/curves'), ' schnorr, which this demo cross-checks against byte-for-byte.'),
+    note('info', h('strong', {}, 'Not production crypto — a teaching demo. '), 'This page deliberately renders private keys and nonces so you can watch the math; browser extensions, injected scripts, and devtools can read them, and JavaScript cannot guarantee constant-time execution or reliably zeroize secrets. The BIP-340 layer here is specification-conformant and differentially tested against ', h('code', {}, '@noble/curves'), ' (which is independently audited) — but it is not itself audited. Never use this to protect real funds.'),
     output,
   );
 

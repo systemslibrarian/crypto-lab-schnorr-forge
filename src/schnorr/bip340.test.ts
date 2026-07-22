@@ -50,6 +50,33 @@ describe('BIP-340 hand-rolled internals', () => {
     expect(schnorr.verify(ours, msg, schnorr.getPublicKey(sk))).toBe(true);
   });
 
+  it('differential sweep vs @noble across many keys, messages, aux, and lengths', () => {
+    // Deterministic (fixed seeds), so CI failures are reproducible.
+    for (let i = 1; i <= 40; i++) {
+      const sk = bigTo32(mod(BigInt(1000003 * i + 7) * 0x9e3779b97f4a7c15n, N) || 1n);
+      const aux = bigTo32(BigInt(i)); // varied, explicit aux
+      // Message length cycles through 0, 1, 17, 32, 100 bytes.
+      const len = [0, 1, 17, 32, 100][i % 5];
+      const msg = new Uint8Array(len).map((_, j) => (i * 31 + j * 7) & 0xff);
+
+      // Same aux ⇒ our hand-rolled signer must equal Noble byte-for-byte.
+      const d0 = bytesToBig(sk);
+      const Ppt = G.multiply(d0);
+      const d = hasEvenY(Ppt) ? d0 : N - d0;
+      const k0 = deriveNonce(d, xOnly(Ppt), msg, aux);
+      const ours = signWithNonce(msg, d0, k0, aux).signature;
+      const theirs = schnorr.sign(msg, sk, aux);
+      expect(bytesToHex(ours)).toBe(bytesToHex(theirs));
+
+      // Our verify agrees with Noble on the good signature and on a tampered one.
+      const pub = schnorr.getPublicKey(sk);
+      expect(verify(ours, msg, pub).valid).toBe(true);
+      const bad = ours.slice();
+      bad[40] ^= 0x80;
+      expect(verify(bad, msg, pub).valid).toBe(schnorr.verify(bad, msg, pub));
+    }
+  });
+
   it('verify exposes both sides: s·G equals R + e·P on a good signature', () => {
     const sk = bigTo32(7n);
     const msg = utf8('both sides');

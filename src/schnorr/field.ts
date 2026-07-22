@@ -61,12 +61,14 @@ export function bigTo32(x: bigint): Uint8Array {
 
 export function hexToBytes(hex: string): Uint8Array {
   const h = hex.replace(/\s+/g, '');
+  // Validate the ENTIRE string up front. parseInt() stops at the first invalid
+  // character and silently accepts a valid prefix ("0g" → 0), so a per-pair
+  // parse would let malformed input through. Fail closed instead.
+  if (!/^[0-9a-fA-F]*$/.test(h)) throw new Error('invalid hex character');
   if (h.length % 2 !== 0) throw new Error('odd-length hex');
   const out = new Uint8Array(h.length / 2);
   for (let i = 0; i < out.length; i++) {
-    const byte = Number.parseInt(h.slice(i * 2, i * 2 + 2), 16);
-    if (Number.isNaN(byte)) throw new Error('invalid hex');
-    out[i] = byte;
+    out[i] = Number.parseInt(h.slice(i * 2, i * 2 + 2), 16);
   }
   return out;
 }

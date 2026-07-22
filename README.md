@@ -55,6 +55,17 @@ Sign a message, flip a byte and watch verification fail, force a nonce reuse and
 
 BIP-340 Schnorr is deployed in **Bitcoin Taproot** (activated 2021) for single-key and multisig spending, and underpins **MuSig2** key aggregation and **FROST** threshold signing. The same commit-challenge-respond structure is the Schnorr identification protocol behind much of the zero-knowledge and threshold-signature literature.
 
+## Threat Model & Scope
+
+What "not production crypto" concretely means here:
+
+- **Secrets are deliberately on screen.** The lab renders private keys and nonces so you can watch the arithmetic. Browser extensions, injected scripts, and devtools can read anything the page holds.
+- **No timing guarantees.** JavaScript cannot promise constant-time execution and cannot reliably zeroize secrets from memory. This code is optimized for transparency, not side-channel resistance.
+- **Conformance ≠ audit.** The hand-rolled BIP-340 layer is **specification-conformant and differentially tested** against `@noble/curves` (which is independently audited) and the official vectors — but it has not itself received an independent security audit.
+- **Provenance.** Test vectors are the 19 official rows from [`bitcoin/bips` `bip-0340/test-vectors.csv`](https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv); the differential oracle is `@noble/curves` v2. Group arithmetic (point mul/add, field sqrt, scalar inverse) is Noble's; tagged hashes, the sign/verify equation, x-only/even-y encoding, nonce-reuse recovery, and the textbook aggregation teaser are hand-rolled. The aggregation panel is intentionally **textbook full-point Schnorr**, not BIP-340.
+
+Bottom line: great for learning exactly what BIP-340 signs and why a signature passes or fails; never for protecting real funds.
+
 ## How to Run Locally
 
 ```bash

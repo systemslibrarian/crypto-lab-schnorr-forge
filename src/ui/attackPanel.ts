@@ -94,7 +94,7 @@ export function renderAttackPanel(root: HTMLElement): void {
     ),
     note('danger',
       h('strong', {}, 'Deliberately broken signer. '),
-      'Real BIP-340 derives the nonce deterministically from the message, so two different messages never collide. This tab overrides that and forces one fixed nonce across both messages to simulate a faulty RNG — the failure mode, isolated and clearly marked, never the default.',
+      'Real BIP-340 derives the nonce deterministically from the message, so a collision between two different messages is cryptographically negligible. This tab overrides that and forces one fixed nonce across both messages to simulate a faulty RNG — the failure mode, isolated and clearly marked, never the default.',
     ),
     h('div', { class: 'controls' },
       h('div', { class: 'control' },

@@ -87,6 +87,11 @@ body {
 .cl-hero-why-text{margin:.35rem 0 0;font-size:.95rem;line-height:1.5;}
 @media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
 /* END cl-hero standard */
+/* Overflow fix (also patch the managed source): the mobile hero-main keeps a
+   20rem min-width that exceeds a 320px viewport, and hero-why's width:100% plus
+   padding overflows under content-box sizing. Let both shrink to their column. */
+.cl-hero-why{box-sizing:border-box;}
+@media (max-width:640px){.cl-hero-main{min-width:0;}}
 .cl-hero-sub { color: var(--accent-text); opacity: 1; }
 .cl-hero-desc code { background: var(--surface-2); padding: 0.05em 0.35em; border-radius: 5px; }
 .cl-hero-why-label { color: var(--accent-text); }

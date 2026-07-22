@@ -121,8 +121,9 @@ export function signWithNonce(
  *   k0   = int(rand) mod n
  * `auxRand` = 32 zero bytes is the fully deterministic variant; fresh random aux
  * is the hedged variant. BOTH are safe — the nonce still binds the message, so
- * two different messages never collide. (Reuse only happens with a broken RNG,
- * which is what the attack panel forces.)
+ * a collision between two different messages is cryptographically negligible
+ * under the hash assumptions. (Reuse in practice comes from a broken RNG, which
+ * is what the attack panel forces.)
  */
 export function deriveNonce(
   d: bigint,
