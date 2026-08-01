@@ -49,7 +49,7 @@ Sign a message, flip a byte and watch verification fail, force a nonce reuse and
 
 ## What Can Go Wrong
 
-- **Nonce reuse** — two signatures under one key with the same `k` leak the private key by subtraction (Exhibit 4). This sank the Sony PlayStation 3 signing key (2010) and has drained Bitcoin wallets.
+- **Nonce reuse** — two signatures under one key with the same `k` leak the private key by subtraction (Exhibit 4). The same root cause sank the Sony PlayStation 3 signing key (2010) and has drained Bitcoin wallets — those were ECDSA, where the recovery algebra differs in detail, but the fatal ingredient is identical: one `k` used twice.
 - **Predictable / low-entropy nonces** — a nonce an attacker can guess or bias is as fatal as reuse; BIP-340 derives it deterministically from the message and key for this reason.
 - **Malleability / malformed inputs** — BIP-340 fixes strict encodings; the verifier rejects non-canonical `R`/`s`, off-curve points, and out-of-range scalars (Exhibit 5).
 - **Naive key aggregation** — simply adding public keys and nonces (Exhibit 6's teaser) is insecure against rogue-key and Wagner attacks; MuSig2 and FROST exist to fix that.

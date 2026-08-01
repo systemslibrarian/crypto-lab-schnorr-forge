@@ -90,7 +90,7 @@ export function renderAttackPanel(root: HTMLElement): void {
     panelIntro(
       'Nonce Reuse → Key Recovery',
       'A Schnorr signature hides the private key x behind a one-time secret nonce k in the response s = k + e·x. That mask only works once. If a signer ever reuses the same k for two different messages, subtracting the two responses cancels k and leaves the key exposed to simple division.',
-      'This is not a theoretical worry: the 2010 Sony PlayStation 3 breach and multiple Bitcoin wallet thefts came from exactly this — a repeated signing nonce.',
+      'This is not a theoretical worry. The 2010 Sony PlayStation 3 breach and multiple Bitcoin wallet thefts were the same root cause — a repeated signing nonce. Both of those were ECDSA rather than Schnorr, so the recovery algebra differs in detail, but the fatal ingredient is identical: one k used twice.',
     ),
     note('danger',
       h('strong', {}, 'Deliberately broken signer. '),

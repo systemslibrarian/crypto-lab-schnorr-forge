@@ -95,16 +95,29 @@ export function renderVerifyWorkbench(root: HTMLElement): void {
     run();
   }
 
-  const presetButtons = buildPresets().map((p) =>
-    h('button', {
+  // The ✓/✕ on each preset button is our own verify() run over that preset, not a
+  // label typed next to it. If the hand-rolled verifier ever disagreed with the
+  // case's documented expectation the button says MISMATCH instead of quietly
+  // asserting the answer the case is supposed to produce.
+  const presetButtons = buildPresets().map((p) => {
+    let actual: boolean;
+    try {
+      actual = verify(hexToBytes(p.sig), hexToBytes(p.msgHex), hexToBytes(p.pubkey)).valid;
+    } catch {
+      actual = false;
+    }
+    const agrees = actual === (p.expect === 'accept');
+    return h('button', {
       type: 'button',
-      class: `btn btn-ghost preset-btn preset-${p.expect}`,
-      title: p.why,
+      class: `btn btn-ghost preset-btn preset-${p.expect}${agrees ? '' : ' preset-mismatch'}`,
+      title: agrees
+        ? `${p.why} — our verify() ${actual ? 'accepts' : 'rejects'} it, as expected`
+        : `${p.why} — MISMATCH: expected ${p.expect}, our verify() ${actual ? 'accepts' : 'rejects'}`,
       onclick: () => load(p.pubkey, p.sig, p.msgHex),
     },
-    h('span', { 'aria-hidden': 'true' }, p.expect === 'accept' ? '✓ ' : '✕ '),
-    p.name),
-  );
+    h('span', { 'aria-hidden': 'true' }, agrees ? (p.expect === 'accept' ? '✓ ' : '✕ ') : '⚠ '),
+    agrees ? p.name : `${p.name} — MISMATCH`);
+  });
 
   // Allow other panels / the permalink to hand a case over.
   setVerifyLoader((d) => load(d.pubkeyHex, d.sigHex, d.msgHex));
