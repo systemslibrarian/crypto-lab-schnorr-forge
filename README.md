@@ -39,7 +39,7 @@ Several exhibits end with an optional **quick check** — a one-question predict
 - **Use** Schnorr/BIP-340 when you want short, linear, aggregatable signatures — Bitcoin Taproot, multisig, threshold signing.
 - **Use** deterministic (or hedged) nonce derivation **always** — never a bare RNG for the nonce.
 - **Do NOT** roll your own signer for production from this code. It is optimized for transparency, not constant-time safety. Use `@noble/curves`, `libsecp256k1`, or an equivalent audited library.
-- **Do NOT** ever reuse a nonce, derive it from anything an attacker can force to repeat, or truncate its entropy. Exhibit 3 shows exactly why.
+- **Do NOT** ever reuse a nonce, derive it from anything an attacker can force to repeat, or truncate its entropy. Exhibit 4 shows exactly why.
 
 ## Live Demo
 
@@ -49,10 +49,10 @@ Sign a message, flip a byte and watch verification fail, force a nonce reuse and
 
 ## What Can Go Wrong
 
-- **Nonce reuse** — two signatures under one key with the same `k` leak the private key by subtraction (Exhibit 3). This sank the Sony PlayStation 3 signing key (2010) and has drained Bitcoin wallets.
+- **Nonce reuse** — two signatures under one key with the same `k` leak the private key by subtraction (Exhibit 4). This sank the Sony PlayStation 3 signing key (2010) and has drained Bitcoin wallets.
 - **Predictable / low-entropy nonces** — a nonce an attacker can guess or bias is as fatal as reuse; BIP-340 derives it deterministically from the message and key for this reason.
-- **Malleability / malformed inputs** — BIP-340 fixes strict encodings; the verifier rejects non-canonical `R`/`s`, off-curve points, and out-of-range scalars (Exhibit 4).
-- **Naive key aggregation** — simply adding public keys and nonces (Exhibit 5's teaser) is insecure against rogue-key and Wagner attacks; MuSig2 and FROST exist to fix that.
+- **Malleability / malformed inputs** — BIP-340 fixes strict encodings; the verifier rejects non-canonical `R`/`s`, off-curve points, and out-of-range scalars (Exhibit 5).
+- **Naive key aggregation** — simply adding public keys and nonces (Exhibit 6's teaser) is insecure against rogue-key and Wagner attacks; MuSig2 and FROST exist to fix that.
 
 ## Real-World Usage
 
