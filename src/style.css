@@ -76,7 +76,6 @@ body {
 }
 
 /* ---------- hero (managed cl-hero standard) ---------- */
-/* BEGIN cl-hero standard — managed, keep in sync across fleet */
 .cl-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(1rem,4vw,3rem);flex-wrap:wrap;margin:clamp(1rem,3vw,2rem) 0 1.5rem;}
 .cl-hero-main{flex:1 1 22rem;min-width:min(100%,20rem);}
 .cl-hero-title{margin:0;font-size:clamp(1.6rem,3.8vw,2.7rem);font-weight:700;line-height:1.1;letter-spacing:.01em;}
@@ -86,12 +85,11 @@ body {
 .cl-hero-why-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.14em;}
 .cl-hero-why-text{margin:.35rem 0 0;font-size:.95rem;line-height:1.5;}
 @media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
-/* END cl-hero standard */
 /* Overflow fix (also patch the managed source): the mobile hero-main keeps a
    20rem min-width that exceeds a 320px viewport, and hero-why's width:100% plus
    padding overflows under content-box sizing. Let both shrink to their column. */
 .cl-hero-why{box-sizing:border-box;}
-@media (max-width:640px){.cl-hero-main{min-width:0;}}
+@media (max-width:640px){.cl-hero-main {min-width:0; flex-basis: auto;}}
 .cl-hero-sub { color: var(--accent-text); opacity: 1; }
 .cl-hero-desc code { background: var(--surface-2); padding: 0.05em 0.35em; border-radius: 5px; }
 .cl-hero-why-label { color: var(--accent-text); }
