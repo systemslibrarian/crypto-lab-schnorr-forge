@@ -120,7 +120,14 @@ body {
 .tab-btn.active {
   color: var(--accent-ink);
   background: var(--accent);
-  border-color: var(--accent);
+  /* The ACTIVE tab painted its border the same colour as its accent fill, so it
+     had no boundary of its own (1:1) and its only delineator was the fill against
+     the page — 2.18:1 in light. This is the control that tells a reader which tab
+     is open, so it is the one that most needs to be distinguishable.
+     `--accent` cannot be darkened to fix it: the comment beside it says it is
+     "also read by the shared header". `--accent-ink` is already defined as the
+     colour that is readable ON this fill (7.76:1), so it is the natural edge. */
+  border-color: var(--accent-ink);
 }
 
 /* ---------- panels ---------- */
@@ -166,7 +173,11 @@ body {
   border-radius: 8px;
   padding: 0.5rem 0.9rem;
   cursor: pointer;
-  border: 1px solid var(--border);
+  /* --control-border, not --border. `--border` is the surface-divider token and
+     measured 1.27:1 dark / 1.29:1 light against this button's own fill, where SC
+     1.4.11 needs 3:1. The palette already defines --control-border in both themes
+     and had applied it once: 3.03:1 dark, 4.29:1 light on the same fill. */
+  border: 1px solid var(--control-border);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
