@@ -116,7 +116,12 @@ body {
   padding: 0.45rem 0.8rem;
   cursor: pointer;
 }
-.tab-btn:hover { color: var(--text); background: var(--surface-2); }
+/* The hover fill needs an edge of its own: hover persists after a click, and
+   --surface-2 alone measures 1.19:1 dark / 1.07:1 light against the page — a
+   control whose only painted delineator dissolves the moment it paints one
+   (SC 1.4.11). --control-border clears 3:1 on the page in both themes. The
+   later .tab-btn.active rule still wins for the selected tab. */
+.tab-btn:hover { color: var(--text); background: var(--surface-2); border-color: var(--control-border); }
 .tab-btn.active {
   color: var(--accent-ink);
   background: var(--accent);
@@ -180,7 +185,12 @@ body {
   border: 1px solid var(--control-border);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* Border --accent-ink, not --accent: painting the border the same colour as the
+   fill leaves the control no edge of its own, and the gold fill measures 2.39:1
+   against the light theme's white surface where SC 1.4.11 needs 3:1. Same fix
+   and same reasoning as .tab-btn.active — --accent-ink is already the colour
+   defined to be readable on this fill. In dark the fill clears 3:1 by itself. */
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent-ink); }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
 .btn-ghost { background: var(--surface-2); color: var(--text); }
 .btn-ghost:hover:not(:disabled) { border-color: var(--accent-text); }
@@ -327,10 +337,18 @@ body {
 .footer-links a { color: var(--accent-text); }
 
 /* ---------- segmented encoding toggle (message input) ---------- */
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: fit-content; }
-.seg-btn { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 0.35rem 0.7rem; background: var(--surface); color: var(--text-dim); border: none; cursor: pointer; }
-.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
-.seg-btn.active, .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+/* WCAG 1.4.11 on the whole segmented control. The unselected half used to fill
+   itself with --surface on a --surface panel (1.00:1) behind a --border divider
+   (1.37:1 dark / 1.52:1 light) — a control that dissolved into its card. Now
+   the unselected half paints nothing of its own (identified by its text, like
+   an unselected tab), the group edge and the divider use --control-border, the
+   token the palette defines for exactly this (3.03:1 dark / 4.29:1 light on
+   this surface), and the selected half carries an --accent-ink border because
+   its gold fill alone is 2.39:1 against the light theme's white surface. */
+.seg { display: inline-flex; border: 1px solid var(--control-border); border-radius: 8px; overflow: hidden; width: fit-content; }
+.seg-btn { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 0.35rem 0.7rem; background: transparent; color: var(--text-dim); border: 1px solid transparent; cursor: pointer; }
+.seg-btn + .seg-btn { border-left-color: var(--control-border); }
+.seg-btn.active, .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent-ink); }
 .msg-status { margin: 0.2rem 0 0; }
 
 /* ---------- verify workbench: staged pipeline ---------- */
@@ -348,15 +366,23 @@ body {
 .presets { margin: 1rem 0; display: grid; gap: 0.5rem; }
 .preset-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .preset-btn { font-size: 0.8rem; }
-.preset-accept { border-color: color-mix(in oklab, var(--ok) 45%, var(--border)); }
-.preset-reject { border-color: color-mix(in oklab, var(--bad) 40%, var(--border)); }
+/* Full-strength tones, not mixes toward --border: the 45%/40% mixes measured
+   2.27:1 / 2.19:1 (light) and 2.53:1 (dark reject) against the page, under SC
+   1.4.11's 3:1 — and this border IS the semantic cue distinguishing an accept
+   preset from a reject preset. --ok and --bad clear 3:1 in both themes. */
+.preset-accept { border-color: var(--ok); }
+.preset-reject { border-color: var(--bad); }
 
 /* ---------- copy / actions ---------- */
 .value-with-copy { display: flex; gap: 0.5rem; align-items: flex-start; }
 .value-with-copy .field-value { flex: 1 1 auto; }
 .action-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .copy-btn { font-size: 0.8rem; white-space: nowrap; }
-.copy-secret { border-color: color-mix(in oklab, var(--bad) 40%, var(--border)); color: var(--bad-text); }
+/* Full-strength --bad, not a 40% mix toward --border: the mix measured 2.32:1
+   dark / 2.41:1 light against the surrounding card, under SC 1.4.11's 3:1 —
+   a warning-coloured edge that was quieter than an ordinary button's. --bad
+   itself clears 3:1 on every surface this button sits on, in both themes. */
+.copy-secret { border-color: var(--bad); color: var(--bad-text); }
 
 /* ---------- disclosures: BIP-340 details + learner checks + KAT items ---------- */
 #app summary { cursor: pointer; font-weight: 600; }
