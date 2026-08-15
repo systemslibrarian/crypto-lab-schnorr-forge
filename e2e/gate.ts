@@ -280,14 +280,15 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await expect(page.locator('#app')).toHaveCount(1);
 
   // This lab ships NO in-page theme toggle of its own — the shared bar's
-  // `#cl-theme-toggle` is the only theme control. The shared CSS hides any lab
-  // toggle with `display:none !important`, which would leave a dead-but-known
-  // element; asserting the count at zero catches the day one is added without
-  // going through that list.
+  // Dark is the only theme, so the page must carry no theme control at all —
+  // not the shared bar's, which was removed, and not a lab-local one. The
+  // shared CSS hides any lab toggle with `display:none !important`, which would
+  // leave a dead-but-known element; asserting the count at zero catches the day
+  // one is added without going through that list.
   await expect(
     page.locator('#theme-toggle, #themeToggle, .theme-toggle, .theme-toggle-btn, [data-theme-toggle]')
   ).toHaveCount(0);
-  await expect(page.locator('#cl-theme-toggle')).toHaveCount(1);
+  await expect(page.locator('#cl-theme-toggle')).toHaveCount(0);
 
   // ── The arrival state: Sign & Verify active and ALREADY SIGNED ──────────
   // `renderSignPanel` signs its default message at mount, so first paint
@@ -917,8 +918,8 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await page.getByRole('tab', { name: /Sign & Verify/ }).hover();
   await scanAt('an inactive tab hovered — its surface-2 fill repainted');
 
-  await page.locator('#cl-theme-toggle').hover();
-  await scanAt('the shared top bar theme toggle hovered');
+  await page.locator('.cl-topbar .cl-btn').first().hover();
+  await scanAt('a shared top bar control hovered');
 
   // ── Focus rings on the controls that take them ──────────────────────────
   await page.locator('#lin-msg').focus();
@@ -927,14 +928,4 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
 
   await page.getByRole('tab', { name: /Linearity/ }).focus();
   await scanAt('the active tab focused');
-
-  // ── The theme switched IN PLACE, without a reload ───────────────────────
-  // Every other configuration seeds the theme through localStorage before
-  // `goto`, so this is the only state where the page is repainted live. It is
-  // also the state the gate this replaces mistook for a second full pass: it
-  // clicked this toggle and re-drove the same blind regex walk.
-  const other = theme.startsWith('dark') ? 'light' : 'dark';
-  await page.click('#cl-theme-toggle');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', other);
-  await scan(page, `${theme} / switched live to ${other} with every panel rendered`);
 }
