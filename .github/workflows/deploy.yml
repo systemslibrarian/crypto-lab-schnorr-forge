@@ -11,7 +11,10 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # NOT a bare `pages`: this workflow also runs on pull_request, and with
+  # cancel-in-progress a PR run would cancel a live main deploy. The fleet
+  # template (§6) has said so throughout; this lab had not been updated.
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,6 +37,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Accessibility gate (axe-core, WCAG A/AA, both themes)
         run: npm run test:a11y
+      - name: Displayed claims (what the page says)
+        run: npm run test:claims
       - name: Functional flows (Chromium + mobile viewport)
         run: npm run test:e2e
       - uses: actions/configure-pages@v6
