@@ -252,6 +252,24 @@ export async function assertListSemantics(page: Page): Promise<void> {
  * would leave `#panel-sign` empty, and an empty region is exactly what a scan
  * reports as perfectly accessible.
  */
+/**
+ * Shared setup. Runs before EVERY test that imports it, so an assertion here
+ * fails all of them at once, under whatever name those tests carry.
+ *
+ * SO THIS FUNCTION ASSERTS STRUCTURE AND NEVER PRODUCT COPY. On 2026-09-26
+ * crypto-lab-mceliece-gate changed one textarea's default string; its gate.ts
+ * still asserted the old sentence, boot() threw, both axe runs failed, the
+ * build job failed, the deploy was skipped, and deploy-sync reported the lab
+ * stale. The step that went red was called "Accessibility gate", and four of
+ * its six a11y tests had passed. For three days the live site served security
+ * claims that main had already corrected, and the one red thing in sight named
+ * the wrong subject.
+ *
+ * Structure: the control exists, the arrival panel is the one that ships,
+ * counts, [hidden]/toBeEmpty on lazily-rendered panels, a default matching a
+ * SHAPE (/^[0-9a-f]{64}$/). Copy: what a string SAYS — that belongs in
+ * e2e/claims.spec.ts, where a failure names copy as the subject.
+ */
 export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   // A click on a control that never becomes actionable otherwise burns the
   // whole test timeout and reports nothing useful. 20s turns that silent hang
@@ -296,7 +314,10 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   // other five panels are lazily rendered: hidden AND EMPTY until their tab is
   // first activated — asserted, because "empty" is this lab's tell that a
   // renderer threw (see `watchPageErrors`).
-  await expect(page.locator('#panel-sign .verdict-pass')).toContainText('VALID');
+  // STRUCTURE, not copy: a pass verdict is PRESENT. What it says is a claim
+  // about this lab's wording and is asserted in claims.spec.ts, where a failure
+  // names copy as the subject. See the note at the top of this file.
+  await expect(page.locator('#panel-sign .verdict-pass')).toBeVisible();
   await expect(page.locator('#panel-sign .trace-step')).toHaveCount(3);
   for (const id of ['verify', 'equation', 'attack', 'vectors', 'linearity']) {
     await expect(page.locator(`#panel-${id}`)).toBeHidden();
@@ -304,14 +325,15 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   }
 
   // ── Every shipped control default ───────────────────────────────────────
+  // A SHAPE, not a sentence: a 64-hex key is structural, the message a product
+  // string. Asserting the string here made every a11y test depend on one line
+  // of copy — see the note at the top of this file.
   await expect(page.locator('#sk-input')).toHaveValue(/^[0-9a-f]{64}$/);
-  await expect(page.locator('#msg-input')).toHaveValue(
-    'Schnorr is the signature ECDSA wishes it were.'
-  );
+  await expect(page.locator('#msg-input')).not.toHaveValue('');
   await expect(page.locator('input[name="nonce-mode"][value="deterministic"]')).toBeChecked();
-  await expect(
-    page.locator('#panel-sign .seg-btn[aria-pressed="true"]')
-  ).toHaveText('UTF-8 text');
+  // Exactly one segment arrives pressed. WHICH one, and what it is labelled,
+  // are claims — claims.spec.ts owns both.
+  await expect(page.locator('#panel-sign .seg-btn[aria-pressed="true"]')).toHaveCount(1);
 
   // ── Disclosures ship shut ───────────────────────────────────────────────
   // The BIP-340 details and the learner check both arrive closed; the gate

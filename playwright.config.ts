@@ -26,6 +26,9 @@ export default defineConfig({
       // Scan the real dark default; the toggle deterministically reaches light.
       use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
     },
+    // Claims run in one engine: they assert what the page SAYS, which does not
+    // vary by browser, unlike the flows suite below.
+    { name: 'claims', testMatch: /claims\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     { name: 'flows-chromium', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     { name: 'flows-firefox', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
     { name: 'flows-webkit', testMatch: /flows\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
