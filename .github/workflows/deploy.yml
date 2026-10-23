@@ -51,14 +51,6 @@ jobs:
       - name: Compressed-size budget
         run: npm run size-budget
 
-      # ubuntu-latest already supplies the shared libraries. Avoiding
-      # --with-deps keeps the gate out of apt and its fleet-wide lock failures.
-      - name: Install Playwright browsers
-        run: npx playwright install chromium firefox webkit
-
-      - name: Complete browser gate (accessibility, claims, cross-browser flows)
-        run: npm run test:e2e:all
-
       - name: Configure Pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
@@ -69,8 +61,40 @@ jobs:
         with:
           path: dist
 
+  # The image carries the exact browser binaries and Linux libraries expected
+  # by Playwright 1.64.0. Pin the multi-architecture manifest by digest so the
+  # rendering/runtime environment cannot drift under an unchanged commit.
+  browser-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
+      options: --ipc=host
+    env:
+      # The Actions runner mounts a HOME that Firefox cannot use in-container.
+      HOME: /root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies exactly from the lockfile
+        run: npm ci
+
+      - name: Complete browser gate (accessibility, claims, cross-browser flows)
+        run: npm run test:e2e:all
+
   deploy:
-    needs: build
+    needs: [build, browser-gate]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -108,7 +132,7 @@ jobs:
   # Dependabot only. The complete build gate decides whether a bump is safe;
   # this job then merges and explicitly dispatches the main deployment.
   dependabot-auto-merge:
-    needs: build
+    needs: [build, browser-gate]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10

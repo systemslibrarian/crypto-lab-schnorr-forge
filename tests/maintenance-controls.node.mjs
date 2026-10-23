@@ -5,6 +5,7 @@ import test from 'node:test';
 const root = new URL('../', import.meta.url);
 const workflow = readFileSync(new URL('.github/workflows/deploy.yml', root), 'utf8');
 const packageJson = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
+const packageLock = JSON.parse(readFileSync(new URL('package-lock.json', root), 'utf8'));
 const gitignore = readFileSync(new URL('.gitignore', root), 'utf8');
 const dom = readFileSync(new URL('src/ui/dom.ts', root), 'utf8');
 const claims = readFileSync(new URL('e2e/claims.spec.ts', root), 'utf8');
@@ -41,14 +42,26 @@ test('every third-party action is pinned to an immutable commit', () => {
 
 test('pull requests run the complete gate without packaging Pages', () => {
   const build = job('build');
+  const browser = job('browser-gate');
   assert.match(build, /run: npm ci/);
   assert.match(build, /run: npm test/);
   assert.match(build, /run: npm run build/);
   assert.match(build, /run: npm run size-budget/);
-  assert.match(build, /run: npm run test:e2e:all/);
-  assert.match(build, /run: npx playwright install chromium firefox webkit/);
-  assert.doesNotMatch(build, /^\s+run: [^\n]*--with-deps/m);
+  assert.match(browser, /run: npm ci/);
+  assert.match(browser, /run: npm run test:e2e:all/);
+  assert.doesNotMatch(browser, /playwright install|--with-deps/);
   assert.match(build, /name: Upload Pages artifact\n\s+if: github\.event_name != 'pull_request'\n\s+uses: actions\/upload-pages-artifact@[0-9a-f]{40}/);
+  assert.match(job('deploy'), /needs: \[build, browser-gate\]/);
+  assert.match(job('dependabot-auto-merge'), /needs: \[build, browser-gate\]/);
+});
+
+test('browser image matches Playwright and is immutable', () => {
+  const version = packageLock.packages['node_modules/@playwright/test'].version;
+  assert.equal(version, packageLock.packages['node_modules/playwright-core'].version);
+  assert.match(
+    job('browser-gate'),
+    new RegExp(`image: mcr\\.microsoft\\.com/playwright:v${version}-noble@sha256:[0-9a-f]{64}`),
+  );
 });
 
 test('post-merge behavior is direct and fail-closed', () => {
@@ -70,7 +83,7 @@ test('a deployment carries and verifies exact source provenance', () => {
 });
 
 test('every job has an explicit timeout', () => {
-  for (const name of ['build', 'deploy', 'dependabot-auto-merge']) {
+  for (const name of ['build', 'browser-gate', 'deploy', 'dependabot-auto-merge']) {
     assert.match(job(name), /timeout-minutes: \d+/);
   }
 });
