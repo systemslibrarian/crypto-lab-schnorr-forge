@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run test:maintenance && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -13,6 +13,7 @@
     "test:claims": "playwright test --project=claims",
     "test:e2e": "playwright test --project=flows-chromium --project=flows-mobile",
     "test:e2e:all": "playwright test",
+    "test:maintenance": "node --test tests/maintenance-controls.node.mjs",
     "size-budget": "node scripts/size-budget.mjs"
   },
   "devDependencies": {

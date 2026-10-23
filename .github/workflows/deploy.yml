@@ -3,55 +3,161 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  # NOT a bare `pages`: this workflow also runs on pull_request, and with
-  # cancel-in-progress a PR run would cancel a live main deploy. The fleet
-  # template (§6) has said so throughout; this lab had not been updated.
+  # A pull-request run must never cancel a live main deployment.
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pages: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+
+      - name: Install dependencies exactly from the lockfile
+        run: npm ci
+
+      - name: Stamp the artifact with its exact source revision
+        run: |
+          mkdir -p public
+          printf '{"source_sha":"%s","repository":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" > public/deployment.json
+
       - name: Unit tests (Vitest, incl. spec KATs)
         run: npm test
+
       - name: Build (typecheck gates the build)
         run: npm run build
+
       - name: Compressed-size budget
         run: npm run size-budget
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-      - name: Accessibility gate (axe-core, WCAG A/AA, both themes)
-        run: npm run test:a11y
-      - name: Displayed claims (what the page says)
-        run: npm run test:claims
-      - name: Functional flows (Chromium + mobile viewport)
-        run: npm run test:e2e
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: dist
 
-  deploy:
-    needs: build
+  # The image carries the exact browser binaries and Linux libraries expected
+  # by Playwright 1.64.0. Pin the multi-architecture manifest by digest so the
+  # rendering/runtime environment cannot drift under an unchanged commit.
+  browser-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
+      options: --ipc=host
+    env:
+      # The Actions runner mounts a HOME that Firefox cannot use in-container.
+      HOME: /root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies exactly from the lockfile
+        run: npm ci
+
+      - name: Complete browser gate (accessibility, claims, cross-browser flows)
+        run: npm run test:e2e:all
+
+  deploy:
+    needs: [build, browser-gate]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+
+      - name: Verify served Pages bytes match the deployed revision
+        env:
+          LIVE_URL: https://systemslibrarian.github.io/crypto-lab-schnorr-forge/
+        run: |
+          set -eu
+          for attempt in $(seq 1 18); do
+            result=$(curl -fsSL --connect-timeout 8 --max-time 15 -H 'Cache-Control: no-cache' "${LIVE_URL}deployment.json?sha=${GITHUB_SHA}" 2>/dev/null || true)
+            if node -e 'try { const p=JSON.parse(process.argv[1]);process.exit(p.source_sha===process.argv[2]&&p.repository===process.argv[3]?0:1) } catch { process.exit(1) }' "$result" "$GITHUB_SHA" "$GITHUB_REPOSITORY"; then
+              html=$(curl -fsSL --connect-timeout 8 --max-time 15 -H 'Cache-Control: no-cache' "${LIVE_URL}?sha=${GITHUB_SHA}" 2>/dev/null || true)
+              if printf '%s' "$html" | grep -Fq 'id="app"'; then
+                echo "Verified live HTML and source revision $GITHUB_SHA at $LIVE_URL"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "::error::Live Pages failed source-SHA/HTML verification"
+          exit 1
+
+  # Dependabot only. The complete build gate decides whether a bump is safe;
+  # this job then merges and explicitly dispatches the main deployment.
+  dependabot-auto-merge:
+    needs: [build, browser-gate]
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Merge any bump whose gate went green
+        run: |
+          set -eu
+          merged=""
+          for attempt in 1 2 3; do
+            if gh pr merge --squash --delete-branch "$PR_URL"; then
+              merged=1
+              break
+            fi
+            echo "merge attempt $attempt failed; base branch may have moved - retrying"
+            sleep 15
+          done
+          if [ -z "$merged" ]; then
+            echo "::error::gate passed but the merge did not land after 3 attempts; the bump is unmerged and no deploy was dispatched"
+            exit 1
+          fi
+          gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

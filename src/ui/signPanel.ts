@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note, copyButton, learnerCheck } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, copyButton, learnerCheck, evidenceRetired } from './dom.js';
 import { sign, verify, type NonceMode, type SignResult } from '../schnorr/bip340.js';
 import {
   G,
@@ -37,6 +37,14 @@ export function renderSignPanel(root: HTMLElement): void {
     initialMode: 'utf8',
   });
   const output = h('div', { class: 'output', id: 'sign-output' });
+  let hasEvidence = false;
+
+  function retireEvidence(): void {
+    if (!hasEvidence) return;
+    hasEvidence = false;
+    clear(output);
+    output.append(evidenceRetired('Inputs changed — sign again to produce evidence for the current key, message, and nonce mode.'));
+  }
 
   function refreshPubkey(): boolean {
     try {
@@ -45,6 +53,10 @@ export function renderSignPanel(root: HTMLElement): void {
       const d0 = bytesToBig(raw);
       if (d0 <= 0n || d0 >= N) throw new Error('out of range [1, n-1]');
       secret = normalizeSecretKey(d0);
+      // The input, its copy button, and the signer must all name the same
+      // canonical BIP-340 key. An odd-y scalar is equivalent for an x-only
+      // public key, but nonce-reuse recovery returns this even-y form.
+      skInput.value = bytesToHex(bigTo32(secret));
       pkOut.textContent = bytesToHex(xOnly(G.multiply(secret)));
       skInput.setAttribute('aria-invalid', 'false');
       return true;
@@ -179,18 +191,21 @@ export function renderSignPanel(root: HTMLElement): void {
       bip340Details(res),
       h('div', { class: 'tamper' }, tamper, tamperOut),
     );
+    hasEvidence = true;
   }
 
   function doSign(): void {
     if (!refreshPubkey()) {
       clear(output);
       output.append(verdict('fail', 'Fix the private key before signing.'));
+      hasEvidence = true;
       return;
     }
     const m = msg.read();
     if (!m.ok) {
       clear(output);
       output.append(verdict('fail', `Message: ${m.error}`));
+      hasEvidence = true;
       return;
     }
     renderResult(sign(m.bytes, bigTo32(secret), mode), m.bytes);
@@ -200,7 +215,7 @@ export function renderSignPanel(root: HTMLElement): void {
     h('label', { class: 'radio' },
       h('input', {
         type: 'radio', name: 'nonce-mode', value: m, checked: m === mode,
-        onchange: () => { mode = m; },
+        onchange: () => { mode = m; retireEvidence(); },
       }),
       h('span', {}, m === 'deterministic' ? 'Deterministic (aux = 0)' : 'Random (hedged aux)'),
     ),
@@ -218,6 +233,7 @@ export function renderSignPanel(root: HTMLElement): void {
         h('div', { class: 'input-row' },
           skInput,
           h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => {
+            retireEvidence();
             secret = normalizeSecretKey(bytesToBig(randomBytes(32)));
             skInput.value = bytesToHex(bigTo32(secret));
             refreshPubkey();
@@ -249,6 +265,19 @@ export function renderSignPanel(root: HTMLElement): void {
     ),
     output,
   );
+
+  skInput.addEventListener('input', () => {
+    retireEvidence();
+    pkOut.textContent = 'key changed — sign to recompute';
+    skInput.removeAttribute('aria-invalid');
+  });
+  let messageInputReady = false;
+  msg.onChange(() => {
+    if (messageInputReady) retireEvidence();
+  });
+  // createMessageInput queues one initial byte-count refresh. Do not mistake
+  // that setup notification for a learner edit and erase the arrival example.
+  queueMicrotask(() => { messageInputReady = true; });
 
   refreshPubkey();
   doSign();

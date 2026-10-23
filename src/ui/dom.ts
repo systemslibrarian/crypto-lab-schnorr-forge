@@ -16,8 +16,6 @@ export function h<K extends keyof HTMLElementTagNameMap>(
       node.addEventListener(key.slice(2).toLowerCase(), value as EventListener);
     } else if (key === 'class') {
       node.className = String(value);
-    } else if (key === 'html') {
-      node.innerHTML = String(value);
     } else if (value === true) {
       node.setAttribute(key, '');
     } else {
@@ -69,6 +67,15 @@ export function panelIntro(title: string, ...paras: (string | HTMLElement)[]): H
 /** A "not production" / scoping note. */
 export function note(kind: 'info' | 'danger' | 'caveat', ...children: Child[]): HTMLElement {
   return h('p', { class: `callout callout-${kind}` }, ...children);
+}
+
+/** Replace evidence that no longer belongs to the controls currently on screen. */
+export function evidenceRetired(text: string): HTMLElement {
+  return h(
+    'p',
+    { class: 'callout callout-caveat evidence-retired', role: 'status', 'aria-live': 'polite' },
+    text,
+  );
 }
 
 /** Middle-truncate a long hex string for compact display; full value stays in title. */

@@ -4,4 +4,5 @@ dist
 *.local
 playwright-report
 test-results
+public/deployment.json
 chat.md
