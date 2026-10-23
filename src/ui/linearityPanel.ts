@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note, learnerCheck } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, learnerCheck, evidenceRetired } from './dom.js';
 import { aggregateTwo } from '../schnorr/aggregate.js';
 import { bytesToBig, randomBytes, N, utf8 } from '../schnorr/field.js';
 
@@ -15,6 +15,14 @@ export function renderLinearityPanel(root: HTMLElement): void {
   let x1 = rndScalar(), x2 = rndScalar(), k1 = rndScalar(), k2 = rndScalar();
   const msgInput = h('textarea', { id: 'lin-msg', class: 'msg-input', rows: 1, spellcheck: false }, 'We jointly authorize this.') as HTMLTextAreaElement;
   const output = h('div', { class: 'output', id: 'linearity-output' });
+  let hasEvidence = false;
+
+  function retireEvidence(): void {
+    if (!hasEvidence) return;
+    hasEvidence = false;
+    clear(output);
+    output.append(evidenceRetired('The shared message changed — combine fresh responses before trusting the aggregate verdict.'));
+  }
 
   function run(): void {
     clear(output);
@@ -45,6 +53,7 @@ export function renderLinearityPanel(root: HTMLElement): void {
           : verdict('fail', 'aggregate did not verify (unexpected)'),
       ),
     );
+    hasEvidence = true;
   }
 
   root.append(
@@ -84,6 +93,8 @@ export function renderLinearityPanel(root: HTMLElement): void {
       'A participant who chooses their key or nonce after seeing the others (a rogue-key or Wagner attack) can forge for the group. MuSig2 and FROST add key-aggregation coefficients and a two-round nonce commitment to close exactly these holes.',
     ),
   );
+
+  msgInput.addEventListener('input', retireEvidence);
 
   run();
 }
