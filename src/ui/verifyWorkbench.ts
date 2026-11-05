@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, evidenceRetired } from './dom.js';
 import { verify, type VerifyStage } from '../schnorr/bip340.js';
 import { hexToBytes } from '../schnorr/field.js';
 import { BIP340_VECTORS } from '../schnorr/vectors.js';
@@ -49,6 +49,14 @@ export function renderVerifyWorkbench(root: HTMLElement): void {
   const sigInput = h('input', { type: 'text', id: 'wb-sig', class: 'mono-input', spellcheck: false, autocomplete: 'off', placeholder: 'signature R.x ‖ s — 128 hex chars' }) as HTMLInputElement;
   const msg = createMessageInput({ id: 'wb-msg', label: 'Message', initialMode: 'hex', initialText: '' });
   const output = h('div', { class: 'output', id: 'wb-output' });
+  let hasEvidence = false;
+
+  function retireEvidence(): void {
+    if (!hasEvidence) return;
+    hasEvidence = false;
+    clear(output);
+    output.append(evidenceRetired('Verification inputs changed — verify again before trusting a verdict.'));
+  }
 
   function run(): void {
     clear(output);
@@ -57,17 +65,20 @@ export function renderVerifyWorkbench(root: HTMLElement): void {
       pubkey = hexToBytes(pkInput.value.trim());
     } catch (e) {
       output.append(verdict('fail', `Public key: ${(e as Error).message}`));
+      hasEvidence = true;
       return;
     }
     try {
       sig = hexToBytes(sigInput.value.trim());
     } catch (e) {
       output.append(verdict('fail', `Signature: ${(e as Error).message}`));
+      hasEvidence = true;
       return;
     }
     const m = msg.read();
     if (!m.ok) {
       output.append(verdict('fail', `Message: ${m.error}`));
+      hasEvidence = true;
       return;
     }
 
@@ -86,6 +97,7 @@ export function renderVerifyWorkbench(root: HTMLElement): void {
         : verdict('fail', `Rejected — ${res.reason}`),
     ];
     output.append(...children.filter((c): c is Node => c != null));
+    hasEvidence = true;
   }
 
   function load(pubkeyHex: string, sigHex: string, msgHex: string): void {
@@ -146,6 +158,14 @@ export function renderVerifyWorkbench(root: HTMLElement): void {
     ),
     output,
   );
+
+  pkInput.addEventListener('input', retireEvidence);
+  sigInput.addEventListener('input', retireEvidence);
+  let messageInputReady = false;
+  msg.onChange(() => {
+    if (messageInputReady) retireEvidence();
+  });
+  queueMicrotask(() => { messageInputReady = true; });
 
   // Start on the valid preset so the panel is populated and scannable.
   const first = buildPresets()[0];

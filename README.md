@@ -76,6 +76,7 @@ npm install
 npm run dev          # http://localhost:5173/crypto-lab-schnorr-forge/
 npm run build        # typecheck + production build to dist/
 npm test             # unit tests incl. BIP-340 KATs
+npm run test:maintenance # publishing and evidence-lifecycle controls
 npm run size-budget  # compressed-bundle budget (build first)
 npm run test:a11y    # WCAG 2.1 AA axe gate, both themes (build first)
 npm run test:e2e     # functional flows on Chromium + a mobile viewport
@@ -98,7 +99,7 @@ npm run test:e2e:all # full matrix: Chromium, Firefox, WebKit, mobile
 - **Attack correctness** — [`src/schnorr/attack.test.ts`](src/schnorr/attack.test.ts) proves nonce-reuse recovery returns the exact private key across many keys, and fails closed when nonces differ or messages coincide.
 - **Accessibility gate** — `@axe-core/playwright` scans the production build for **zero** WCAG 2.1 A/AA violations in **both** themes ([`e2e/a11y.spec.ts`](e2e/a11y.spec.ts)).
 - **Functional flows** — role-based end-to-end scenarios ([`e2e/flows.spec.ts`](e2e/flows.spec.ts)) run on **Chromium, Firefox, WebKit, and a mobile viewport**: sign/verify, tamper-rejects, workbench presets, vector hand-off, aggregation, keyboard tab roving, skip navigation, no-overflow geometry, and 44px touch targets.
-- **Gated CI** — a pull-request workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs typecheck, unit tests, build, the size budget, the a11y gate, and the cross-browser flows **before merge**, with no Pages write permissions; [`deploy.yml`](.github/workflows/deploy.yml) re-runs the gates and ships to Pages only from `main`.
+- **Gated CI and deployment** — one workflow ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)) runs maintenance controls, typecheck, unit tests, build, the size budget, the a11y/claims gate, and cross-browser flows **before merge**. Pull requests receive no Pages write credentials and publish no artifact; `main` stamps the exact source revision, deploys only after the same gate, and verifies the served revision.
 
 ## Performance
 

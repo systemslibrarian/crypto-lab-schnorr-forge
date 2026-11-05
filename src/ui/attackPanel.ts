@@ -1,4 +1,4 @@
-import { h, clear, field, verdict, panelIntro, note, learnerCheck } from './dom.js';
+import { h, clear, field, verdict, panelIntro, note, learnerCheck, evidenceRetired } from './dom.js';
 import { signReusedNonce, recoverPrivateKey } from '../schnorr/attack.js';
 import { verify } from '../schnorr/bip340.js';
 import {
@@ -24,6 +24,14 @@ export function renderAttackPanel(root: HTMLElement): void {
   const msg1 = h('textarea', { id: 'atk-msg1', class: 'msg-input', rows: 1, spellcheck: false }, 'Pay Alice 10 coins') as HTMLTextAreaElement;
   const msg2 = h('textarea', { id: 'atk-msg2', class: 'msg-input', rows: 1, spellcheck: false }, 'Pay Mallory 10000 coins') as HTMLTextAreaElement;
   const output = h('div', { class: 'output', id: 'attack-output' });
+  let hasEvidence = false;
+
+  function retireEvidence(): void {
+    if (!hasEvidence) return;
+    hasEvidence = false;
+    clear(output);
+    output.append(evidenceRetired('Messages changed — run the attack again before trusting the recovery evidence.'));
+  }
 
   function run(): void {
     clear(output);
@@ -84,6 +92,7 @@ export function renderAttackPanel(root: HTMLElement): void {
     }
 
     output.append(sigsBlock, recBlock);
+    hasEvidence = true;
   }
 
   root.append(
@@ -125,6 +134,9 @@ export function renderAttackPanel(root: HTMLElement): void {
     ),
     output,
   );
+
+  msg1.addEventListener('input', retireEvidence);
+  msg2.addEventListener('input', retireEvidence);
 
   run();
 }
