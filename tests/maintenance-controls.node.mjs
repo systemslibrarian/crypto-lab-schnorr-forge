@@ -33,7 +33,21 @@ test('only the deploy job can mint Pages credentials', () => {
 });
 
 test('every third-party action is pinned to an immutable commit', () => {
-  const actions = [...workflow.matchAll(/^\s+uses:\s+([^@\s]+)@([^\s]+)/gm)];
+  // Both step shapes. This pattern required leading whitespace and NO dash, so it
+  // is the mirror of the dash-only hole found in eleven sibling labs: every
+  // `uses:` line in this workflow happens to sit under a `- name:` today, so the
+  // gap is latent rather than live -- the first step written `- uses: x@v1` would
+  // be invisible to it, unpinned and unreported. Measured: rewriting the
+  // deploy-pages step to `- uses: actions/deploy-pages@v5` passes the old pattern
+  // and fails this one.
+  const actions = [...workflow.matchAll(/^[ \t]*(?:-[ \t]+)?uses:[ \t]+([^@\s]+)@([^\s]+)/gm)];
+
+  // A declared denominator. Every `uses:` line present must be a `uses:` line
+  // parsed, so a step in a shape neither pattern can read fails here instead of
+  // passing unseen.
+  const present = workflow.match(/^[ \t]*(?:-[ \t]+)?uses:/gm) ?? [];
+  assert.equal(actions.length, present.length,
+    `${present.length - actions.length} uses: line(s) this control cannot read`);
   assert.ok(actions.length > 0, 'workflow has no actions');
   for (const [, action, reference] of actions) {
     assert.match(reference, /^[0-9a-f]{40}$/, `${action} is not commit-pinned`);
