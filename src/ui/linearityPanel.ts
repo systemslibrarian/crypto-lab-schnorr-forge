@@ -80,9 +80,9 @@ export function renderLinearityPanel(root: HTMLElement): void {
       h('strong', {}, 'Illustrative simplification. '),
       'This teaser uses textbook Schnorr over full points and adds nonces naively — which is insecure against rogue-key and Wagner-style attacks. Making key aggregation safe is exactly what ',
       h('a', { href: 'https://systemslibrarian.github.io/crypto-lab-musig-gate/', target: '_blank', rel: 'noopener noreferrer' }, 'MuSig2'),
-      ' (two-round nonces, key-aggregation coefficients) and ',
+      ' does (key-aggregation coefficients, two nonces per signer, two rounds); ',
       h('a', { href: 'https://systemslibrarian.github.io/crypto-lab-frost-threshold/', target: '_blank', rel: 'noopener noreferrer' }, 'FROST'),
-      ' add. The linearity shown here is real; the security engineering is what those protocols contribute.',
+      ' solves a different problem — threshold signing from one Shamir-shared key, with a binding factor over the message and the commitment list. The linearity shown here is real; the security engineering is what those protocols contribute.',
     ),
     learnerCheck(
       'Since two honest signers combine cleanly here, is this naive add-the-keys aggregation safe to deploy?',
@@ -90,7 +90,7 @@ export function renderLinearityPanel(root: HTMLElement): void {
         { label: 'Yes, it just works', correct: false },
         { label: 'No — a malicious signer can break it', correct: true },
       ],
-      'A participant who chooses their key or nonce after seeing the others (a rogue-key or Wagner attack) can forge for the group. MuSig2 and FROST add key-aggregation coefficients and a two-round nonce commitment to close exactly these holes.',
+      'A participant who chooses their key or nonce after seeing the others (a rogue-key or Wagner attack) can forge for the group. They are two different constructions. MuSig2 (BIP-327) aggregates independent keys, weighting each by a key-aggregation coefficient hashed from the key list, and has every signer send two nonces instead of one — which is what lets it drop MuSig1’s separate nonce-commitment round. FROST (RFC 9591) aggregates nothing: one group key is Shamir-shared among the signers, and each signer commits to two nonces that a per-signer binding factor ties to the message and to the exact commitment list.',
     ),
   );
 

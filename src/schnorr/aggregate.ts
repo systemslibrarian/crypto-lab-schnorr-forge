@@ -15,8 +15,11 @@
  * SIMPLIFICATION (labeled honestly): this teaser uses textbook Schnorr over
  * FULL points — it drops BIP-340's x-only/even-y parity bookkeeping, and it does
  * naive nonce addition, which is INSECURE against rogue-key and Wagner-style
- * attacks. Making key aggregation safe is exactly the job of MuSig2 (two-round
- * nonces, key-aggregation coefficients) and FROST. See the linked demos. The
+ * attacks. Making key aggregation safe is exactly the job of MuSig2 (BIP-327:
+ * key-aggregation coefficients, two nonces per signer, two rounds); FROST
+ * (RFC 9591) is a different construction — one Shamir-shared group key, with a
+ * per-signer binding factor over the message and the commitment list, not
+ * aggregation of independent keys. See the linked demos. The
  * linearity shown here is real; the security work is what those protocols add.
  */
 import { N, G, Point, type Pt, mod, bytesToBig, bigTo32 } from './field.js';

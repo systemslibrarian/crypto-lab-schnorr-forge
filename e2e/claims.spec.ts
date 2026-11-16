@@ -91,4 +91,27 @@ test.describe('displayed claims', () => {
     await expect(linearity.locator('.evidence-retired')).toContainText('message changed');
     await expect(linearity.locator('.verdict-pass')).toHaveCount(0);
   });
+
+  test('the linearity quick check keeps MuSig2 and FROST apart', async ({ page }) => {
+    await boot(page, 'dark');
+    await page.getByRole('tab', { name: 'Why Linearity Matters' }).click();
+    const linearity = page.locator('#panel-linearity');
+
+    // BIP-327 has key-aggregation coefficients, two nonces per signer and two
+    // rounds (it DROPS MuSig1's nonce-commitment round). RFC 9591 never says
+    // "key aggregation" at all: the group key is Shamir-shared and each
+    // signer's nonces are tied down by a binding factor. The explanation used
+    // to credit both schemes with coefficients and "a two-round nonce
+    // commitment", which belongs to neither.
+    await linearity.locator('.learner-check summary').click();
+    await linearity.getByRole('button', { name: 'No — a malicious signer can break it' }).click();
+    const explain = linearity.locator('.check-explain');
+    await expect(explain).toContainText('MuSig2 (BIP-327)');
+    await expect(explain).toContainText('key-aggregation coefficient');
+    await expect(explain).toContainText('FROST (RFC 9591)');
+    await expect(explain).toContainText('Shamir-shared');
+    await expect(explain).toContainText('binding factor');
+    await expect(explain).not.toContainText(/MuSig2 and FROST add key-aggregation coefficients/);
+    await expect(explain).not.toContainText(/two-round nonce commitment/);
+  });
 });
