@@ -4,6 +4,7 @@ import { auditContrast, formatContrastFailures } from './contrast';
 import { auditControlNames, formatControlNameFailures } from './control-names';
 import { auditNonText } from './nontext';
 import { NONTEXT_BASELINE } from './nontext-baseline';
+import { assertThisLab } from './identity';
 
 export const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
@@ -278,7 +279,10 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   page.setDefaultTimeout(20_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
-  await page.goto('.');
+  /* Not page.goto: every suite in the fleet used to navigate and start
+   * asserting on whatever answered, with nothing checking whose server it was.
+   * See e2e/identity.ts for what that cost. */
+  await assertThisLab(page, '.');
   expect(
     await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches),
     'reduced-motion emulation must actually be in effect'
