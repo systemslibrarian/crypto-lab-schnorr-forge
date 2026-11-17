@@ -4,7 +4,7 @@
 
 An interactive, browser-only lab for BIP-340 Schnorr signatures. Generate a key, sign a message, and verify it with real elliptic-curve arithmetic — then step through the signing equation, reuse a nonce to watch the private key fall out by algebra, and see how two signatures add into one.
 
-> **Not production cryptography — a teaching demo.** Keys are generated per-session in memory and never stored or transmitted. There is no backend. For real signing, use the audited [`@noble/curves`](https://github.com/paulmillr/noble-curves) `schnorr` implementation — which this demo cross-checks against byte-for-byte.
+> **Not production cryptography — a teaching demo.** Keys are generated per-session in memory and never stored or transmitted. There is no backend. For real signing, use the [`@noble/curves`](https://github.com/paulmillr/noble-curves) `schnorr` implementation — which this demo cross-checks against byte-for-byte. Check its version against its audit record before you rely on it: its latest independent audit is "at version 2.3.0, in Aug 2026, by [Trail of Bits]", and this lab pins `^2.4.0`.
 
 ## What It Is
 
@@ -64,7 +64,7 @@ What "not production crypto" concretely means here:
 
 - **Secrets are deliberately on screen.** The lab renders private keys and nonces so you can watch the arithmetic. Browser extensions, injected scripts, and devtools can read anything the page holds.
 - **No timing guarantees.** JavaScript cannot promise constant-time execution and cannot reliably zeroize secrets from memory. This code is optimized for transparency, not side-channel resistance.
-- **Conformance ≠ audit.** The hand-rolled BIP-340 layer is **specification-conformant and differentially tested** against `@noble/curves` (which is independently audited) and the official vectors — but it has not itself received an independent security audit.
+- **Conformance ≠ audit.** The hand-rolled BIP-340 layer is **specification-conformant and differentially tested** against `@noble/curves` (independently audited "at version 2.3.0, in Aug 2026, by [Trail of Bits]", one release behind the `^2.4.0` pinned here) and the official vectors — but it has not itself received an independent security audit.
 - **Provenance.** Test vectors are the 19 official rows from [`bitcoin/bips` `bip-0340/test-vectors.csv`](https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv); the differential oracle is `@noble/curves` v2. Group arithmetic (point mul/add, field sqrt, scalar inverse) is Noble's; tagged hashes, the sign/verify equation, x-only/even-y encoding, nonce-reuse recovery, and the textbook aggregation teaser are hand-rolled. The aggregation panel is intentionally **textbook full-point Schnorr**, not BIP-340.
 
 Bottom line: great for learning exactly what BIP-340 signs and why a signature passes or fails; never for protecting real funds.

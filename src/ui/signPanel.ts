@@ -254,7 +254,7 @@ export function renderSignPanel(root: HTMLElement): void {
       ),
       h('button', { type: 'button', class: 'btn btn-primary', onclick: doSign }, 'Sign message'),
     ),
-    note('info', h('strong', {}, 'Not production crypto — a teaching demo. '), 'This page deliberately renders private keys and nonces so you can watch the math; browser extensions, injected scripts, and devtools can read them, and JavaScript cannot guarantee constant-time execution or reliably zeroize secrets. The BIP-340 layer here is specification-conformant and differentially tested against ', h('code', {}, '@noble/curves'), ' (which is independently audited) — but it is not itself audited. Never use this to protect real funds.'),
+    note('info', h('strong', {}, 'Not production crypto — a teaching demo. '), 'This page deliberately renders private keys and nonces so you can watch the math; browser extensions, injected scripts, and devtools can read them, and JavaScript cannot guarantee constant-time execution or reliably zeroize secrets. The BIP-340 layer here is specification-conformant and differentially tested against ', h('code', {}, '@noble/curves'), ' (independently audited “at version 2.3.0, in Aug 2026, by Trail of Bits” — one release behind the ^2.4.0 pinned here) — but it is not itself audited. Never use this to protect real funds.'),
     learnerCheck(
       'You sign a message, then change only the message and re-verify with the same signature. What happens?',
       [

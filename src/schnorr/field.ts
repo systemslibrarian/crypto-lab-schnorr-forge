@@ -2,7 +2,9 @@
  * secp256k1 group parameters and the small byte/scalar helpers BIP-340 needs.
  *
  * Group arithmetic (point multiply/add, field sqrt, scalar inverse) comes from
- * @noble/curves — audited, constant-time-ish, and NOT the teaching subject. The
+ * @noble/curves — constant-time-ish, and NOT the teaching subject. (Its latest
+ * independent audit is "at version 2.3.0, in Aug 2026, by [Trail of Bits]",
+ * scope "everything"; the pin here is ^2.4.0, one release past it.) The
  * teaching subject is BIP-340 itself (tagged hashes, the commit/challenge/respond
  * equation, x-only encoding), which we hand-roll in bip340.ts on top of these
  * primitives so every intermediate value is inspectable.
