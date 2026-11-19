@@ -75,6 +75,8 @@ jobs:
     env:
       # The Actions runner mounts a HOME that Firefox cannot use in-container.
       HOME: /root
+      # Keep in step with the image tag above; asserted before the gate runs.
+      EXPECTED_PLAYWRIGHT_VERSION: 1.64.0
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -90,6 +92,21 @@ jobs:
       - name: Install dependencies exactly from the lockfile
         run: npm ci
 
+      # The image carries ONE set of browser builds and npm ci installs what the
+      # lockfile resolves, so a caret range here is an instruction to drift apart
+      # from the image. crypto-lab-cold-boot declared ^1.64.0 against v1.64.0-noble,
+      # resolved 1.65.1, and every launch died with "Executable doesn't exist at
+      # /ms-playwright/chromium_headless_shell-..." -- browser-gate red, deploy
+      # skipped on needs:, nothing published, and no line naming the cause.
+      - name: Fail if the installed Playwright does not match the image
+        run: |
+          set -eu
+          installed=$(npx playwright --version | awk '{print $2}')
+          echo "installed Playwright $installed; image carries browsers for $EXPECTED_PLAYWRIGHT_VERSION"
+          [ "$installed" = "$EXPECTED_PLAYWRIGHT_VERSION" ] || {
+            echo "::error::Playwright $installed does not match the container image ($EXPECTED_PLAYWRIGHT_VERSION); its browsers are not in this image. Bump the image tag and digest and EXPECTED_PLAYWRIGHT_VERSION together, or pin @playwright/test back."
+            exit 1
+          }
       - name: Complete browser gate (accessibility, claims, cross-browser flows)
         run: npm run test:e2e:all
 
