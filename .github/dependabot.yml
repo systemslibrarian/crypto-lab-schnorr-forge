@@ -28,6 +28,19 @@ updates:
           - "minor"
           - "patch"
 
+    # Playwright is PINNED TO THE CI CONTAINER, so it must not move on its own.
+    # The gate runs in mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
+    # and package.json pins @playwright/test to 1.64.0 to match that image's
+    # bundled browsers. A Dependabot bump of the npm package alone leaves the
+    # container one version behind the test runner, which is a mismatch the gate
+    # cannot report as such. Playwright moves only in a deliberate change that
+    # bumps the image tag (v1.64.0), its @sha256 digest and this pin together.
+    #
+    # @axe-core/playwright is deliberately NOT ignored: it tracks axe-core, not the
+    # browser build, and nothing about it is pinned to the image.
+    ignore:
+      - dependency-name: "@playwright/test"
+      - dependency-name: "playwright"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
