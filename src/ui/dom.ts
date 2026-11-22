@@ -86,17 +86,36 @@ export function short(hex: string, keep = 10): string {
 
 /**
  * A copy-to-clipboard button. `secret: true` marks it as copying key material
- * (styled distinctly, warned in its label) so public and private values are
- * never treated as interchangeable.
+ * (styled distinctly, named distinctly) so public and private values are never
+ * treated as interchangeable.
+ *
+ * `describes` says WHAT is copied and is appended to the visible text; it is not
+ * the whole accessible name. That is the point of the parameter, and it replaced
+ * a `label` that set the name outright.
+ *
+ * WHY. The visible text is `base`, and WCAG 2.5.3 Label in Name requires the
+ * accessible name to contain it — axe's `label-content-name-mismatch`, which
+ * became a failure here when @axe-core/playwright moved 4.13 -> 4.14. The secret
+ * button was named "Copy private key (secret)" over the visible text "Copy
+ * secret": the words are all present but not as a contiguous string, so the name
+ * did not contain the label and the rule fired. A caller supplying a full name
+ * can always get that wrong again, and nothing in the signature stopped it. With
+ * `describes`, the visible text is always a PREFIX of the accessible name and the
+ * mismatch is unreachable rather than merely fixed.
  */
-export function copyButton(getText: () => string, opts: { label?: string; secret?: boolean } = {}): HTMLButtonElement {
-  const base = opts.secret ? 'Copy secret' : 'Copy';
+export function copyLabels(opts: { describes?: string; secret?: boolean } = {}): { visible: string; name: string } {
+  const visible = opts.secret ? 'Copy secret' : 'Copy';
+  return { visible, name: opts.describes ? `${visible} ${opts.describes}` : visible };
+}
+
+export function copyButton(getText: () => string, opts: { describes?: string; secret?: boolean } = {}): HTMLButtonElement {
+  const { visible: base, name } = copyLabels(opts);
   const btn = h(
     'button',
     {
       type: 'button',
       class: `btn btn-ghost copy-btn${opts.secret ? ' copy-secret' : ''}`,
-      'aria-label': opts.label ?? base,
+      'aria-label': name,
     },
     base,
   ) as HTMLButtonElement;

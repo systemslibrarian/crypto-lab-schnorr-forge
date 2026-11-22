@@ -163,8 +163,8 @@ export function renderSignPanel(root: HTMLElement): void {
       );
 
     const actions = h('div', { class: 'action-row' },
-      copyButton(() => sigHex, { label: 'Copy signature' }),
-      copyButton(() => permalink(), { label: 'Copy shareable verify link' }),
+      copyButton(() => sigHex, { describes: 'signature' }),
+      copyButton(() => permalink(), { describes: 'shareable verify link' }),
       h('button', {
         type: 'button', class: 'btn btn-ghost',
         onclick: () => {
@@ -181,7 +181,7 @@ export function renderSignPanel(root: HTMLElement): void {
         h('span', { class: 'field-label' }, 'public key P.x (x-only, 32 bytes)'),
         h('div', { class: 'value-with-copy' },
           h('code', { class: 'field-value' }, pubHex),
-          copyButton(() => pubHex, { label: 'Copy public key' }),
+          copyButton(() => pubHex, { describes: 'public key' }),
         ),
       ),
       steps,
@@ -238,7 +238,7 @@ export function renderSignPanel(root: HTMLElement): void {
             skInput.value = bytesToHex(bigTo32(secret));
             refreshPubkey();
           } }, 'Randomize'),
-          copyButton(() => skInput.value.trim(), { secret: true, label: 'Copy private key (secret)' }),
+          copyButton(() => skInput.value.trim(), { secret: true, describes: 'private key' }),
         ),
         h('p', { id: 'sk-help', class: 'help' }, 'Normalized to BIP-340 even-y form, so the key you see is the key recovery would return.'),
         h('div', { class: 'field' },
