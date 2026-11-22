@@ -47,11 +47,33 @@ describe('copyLabels: the visible text is always part of the accessible name', (
     expect(norm('Copy private key (secret)').includes(norm('Copy secret'))).toBe(false);
   });
 
+  it('the TRANSIENT states satisfy the rule too — the case the first fix missed', () => {
+    /* The click handler replaces the visible text. Composing the name once at
+       build time left "Copied" over a name of "Copy secret private key", and axe
+       caught it in the state the a11y spec drives deliberately:
+       "dark / Sign: a copy button in its just-clicked state, still hovered". */
+    for (const visible of ['Copied', 'Copy failed']) {
+      const { visible: v, name } = copyLabels({ secret: true, describes: 'private key' }, visible);
+      expect(v).toBe(visible);
+      expect(norm(name).startsWith(norm(visible))).toBe(true);
+    }
+    expect(copyLabels({ secret: true, describes: 'private key' }, 'Copied').name)
+      .toBe('Copied private key');
+  });
+
+  it('NEGATIVE: the just-clicked state under the previous fix would fail', () => {
+    /* "Copied" against a fixed name of "Copy secret private key": not contained,
+       which is precisely what the gate reported after the first fix merged. */
+    expect(norm('Copy secret private key').includes(norm('Copied'))).toBe(false);
+  });
+
   it('every shape this builder can produce satisfies the rule', () => {
     for (const secret of [false, true]) {
       for (const describes of [undefined, 'signature', 'shareable verify link', 'public key', 'private key']) {
-        const { visible, name } = copyLabels({ secret, describes });
-        expect(norm(name).startsWith(norm(visible))).toBe(true);
+        for (const text of [undefined, 'Copied', 'Copy failed']) {
+          const { visible, name } = copyLabels({ secret, describes }, text);
+          expect(norm(name).startsWith(norm(visible))).toBe(true);
+        }
       }
     }
   });

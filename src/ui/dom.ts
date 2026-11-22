@@ -103,9 +103,12 @@ export function short(hex: string, keep = 10): string {
  * `describes`, the visible text is always a PREFIX of the accessible name and the
  * mismatch is unreachable rather than merely fixed.
  */
-export function copyLabels(opts: { describes?: string; secret?: boolean } = {}): { visible: string; name: string } {
-  const visible = opts.secret ? 'Copy secret' : 'Copy';
-  return { visible, name: opts.describes ? `${visible} ${opts.describes}` : visible };
+export function copyLabels(
+  opts: { describes?: string; secret?: boolean } = {},
+  visible?: string,
+): { visible: string; name: string } {
+  const text = visible ?? (opts.secret ? 'Copy secret' : 'Copy');
+  return { visible: text, name: opts.describes ? `${text} ${opts.describes}` : text };
 }
 
 export function copyButton(getText: () => string, opts: { describes?: string; secret?: boolean } = {}): HTMLButtonElement {
@@ -119,14 +122,28 @@ export function copyButton(getText: () => string, opts: { describes?: string; se
     },
     base,
   ) as HTMLButtonElement;
+  /* THE TEXT AND THE NAME MOVE TOGETHER, ALWAYS.
+     Composing the name once at build time fixed the resting state and left the
+     TRANSIENT ones broken: the click handler set `textContent = 'Copied'` while
+     the aria-label still said "Copy secret private key", and "Copied" is not
+     contained in that, so WCAG 2.5.3 failed again the moment the button was
+     pressed. axe found it in the state the a11y spec drives on purpose —
+     "dark / Sign: a copy button in its just-clicked state, still hovered" — which
+     is why a resting-state-only fix went green locally and red in the gate.
+     Setting both through one function is what makes the two unable to diverge. */
+  const show = (visible: string): void => {
+    const next = copyLabels(opts, visible);
+    btn.textContent = next.visible;
+    btn.setAttribute('aria-label', next.name);
+  };
   btn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(getText());
-      btn.textContent = 'Copied';
+      show('Copied');
     } catch {
-      btn.textContent = 'Copy failed';
+      show('Copy failed');
     }
-    setTimeout(() => (btn.textContent = base), 1200);
+    setTimeout(() => show(base), 1200);
   });
   return btn;
 }
