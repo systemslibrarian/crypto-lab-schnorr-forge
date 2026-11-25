@@ -49,7 +49,7 @@ export function renderLinearityPanel(root: HTMLElement): void {
         field('combined commitment  (R₁+R₂).x', r.aggRx),
         field('combined response  s = s₁ + s₂', `${r.sIndividualSum}  =  0x${r.s.toString(16)}`),
         r.verifies
-          ? verdict('pass', 'The ordinary verifier accepts (R, s) for the combined key — two signers, one 64-byte signature')
+          ? verdict('pass', 'The ordinary verifier accepts one combined (R, s) signature for the summed key')
           : verdict('fail', 'aggregate did not verify (unexpected)'),
       ),
     );

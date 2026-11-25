@@ -9,7 +9,7 @@
  *     s = s1 + s2 = (k1 + k2) + e·(x1 + x2)
  *     s·G = (k1+k2)·G + e·(x1+x2)·G = (R1+R2) + e·(P1+P2) = R + e·P
  * so the ordinary verifier accepts (R, s) against the combined key P — one
- * 64-byte signature for two signers. This is the seed of Schnorr multisig,
+ * combined signature for two signers. This is the seed of Schnorr multisig,
  * threshold signing, and aggregation.
  *
  * SIMPLIFICATION (labeled honestly): this teaser uses textbook Schnorr over

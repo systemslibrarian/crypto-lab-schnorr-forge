@@ -93,7 +93,7 @@ npm run test:e2e:all # full matrix: Chromium, Firefox, WebKit, mobile
 
 ## Build & Verify
 
-- **69 unit tests** (Vitest, colocated `src/**/*.test.ts`), run in CI on every push and before every merge.
+- **78 unit tests** (Vitest, colocated `src/**/*.test.ts`), run in CI on every push and before every merge.
 - **28 BIP-340 spec KAT assertions** — [`src/schnorr/vectors.ts`](src/schnorr/vectors.ts) holds all 19 official test vectors; [`src/schnorr/vectors.test.ts`](src/schnorr/vectors.test.ts) checks verification against every row **and** reproduces the exact expected signature for the 8 signing vectors. Our signatures are additionally cross-checked byte-for-byte against `@noble/curves` schnorr in a **differential sweep across 40 keys/messages/aux/lengths** ([`src/schnorr/bip340.test.ts`](src/schnorr/bip340.test.ts)), and every verifier rejection branch and pipeline stage is named in a test.
 - **Strict parsing & boundaries** — [`src/schnorr/field.test.ts`](src/schnorr/field.test.ts) proves malformed hex fails closed (no partial parse) and exercises scalar/coordinate boundaries (`0`, `1`, `n-1`, `p`).
 - **Attack correctness** — [`src/schnorr/attack.test.ts`](src/schnorr/attack.test.ts) proves nonce-reuse recovery returns the exact private key across many keys, and fails closed when nonces differ or messages coincide.
